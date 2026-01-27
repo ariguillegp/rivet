@@ -25,3 +25,16 @@ func (EffOpenSession) isEffect() {}
 type EffQuit struct{}
 
 func (EffQuit) isEffect() {}
+
+type EffLoadWorktrees struct {
+	ProjectPath string
+}
+
+func (EffLoadWorktrees) isEffect() {}
+
+type EffCreateWorktree struct {
+	ProjectPath string
+	BranchName  string
+}
+
+func (EffCreateWorktree) isEffect() {}
