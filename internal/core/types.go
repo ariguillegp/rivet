@@ -23,3 +23,11 @@ type SessionSpec struct {
 	DirPath   string
 	CreateDir bool
 }
+
+type Worktree struct {
+	Path     string
+	Name     string
+	Branch   string
+	IsMain   bool
+	IsNew    bool
+}

@@ -31,3 +31,23 @@ func fuzzyMatch(text, pattern string) bool {
 	}
 	return pi == len(pattern)
 }
+
+func FilterWorktrees(wts []Worktree, query string) []Worktree {
+	if query == "" {
+		return wts
+	}
+
+	query = strings.ToLower(query)
+	var result []Worktree
+
+	for _, wt := range wts {
+		name := strings.ToLower(wt.Name)
+		branch := strings.ToLower(wt.Branch)
+
+		if fuzzyMatch(name, query) || fuzzyMatch(branch, query) {
+			result = append(result, wt)
+		}
+	}
+
+	return result
+}

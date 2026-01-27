@@ -29,3 +29,23 @@ type MsgQueryChanged struct {
 }
 
 func (MsgQueryChanged) isMsg() {}
+
+type MsgWorktreesLoaded struct {
+	Worktrees []Worktree
+	Err       error
+}
+
+func (MsgWorktreesLoaded) isMsg() {}
+
+type MsgWorktreeCreated struct {
+	Path string
+	Err  error
+}
+
+func (MsgWorktreeCreated) isMsg() {}
+
+type MsgWorktreeQueryChanged struct {
+	Query string
+}
+
+func (MsgWorktreeQueryChanged) isMsg() {}
