@@ -5,32 +5,39 @@ type Mode int
 const (
 	ModeLoading Mode = iota
 	ModeBrowsing
-	ModeCreateDir
 	ModeWorktree
+	ModeTool
 	ModeError
 )
 
 type Model struct {
-	Mode            Mode
-	Query           string
-	Dirs            []DirEntry
-	Filtered        []DirEntry
-	SelectedIdx     int
-	RootPaths       []string
-	Backend         SessionBackend
-	Err             error
-	SelectedProject string
-	Worktrees       []Worktree
-	FilteredWT      []Worktree
-	WorktreeIdx     int
-	WorktreeQuery   string
+	Mode                 Mode
+	Query                string
+	Dirs                 []DirEntry
+	Filtered             []DirEntry
+	SelectedIdx          int
+	RootPaths            []string
+	Err                  error
+	SelectedProject      string
+	SelectedWorktreePath string
+	ProjectWarning       string
+	Worktrees            []Worktree
+	FilteredWT           []Worktree
+	WorktreeIdx          int
+	WorktreeQuery        string
+	Tools                []string
+	FilteredTools        []string
+	ToolQuery            string
+	ToolIdx              int
 }
 
 func NewModel(roots []string) Model {
+	tools := SupportedTools()
 	return Model{
-		Mode:      ModeLoading,
-		RootPaths: roots,
-		Backend:   BackendNative,
+		Mode:          ModeLoading,
+		RootPaths:     roots,
+		Tools:         tools,
+		FilteredTools: tools,
 	}
 }
 
@@ -46,4 +53,11 @@ func (m Model) SelectedWorktree() (Worktree, bool) {
 		return Worktree{}, false
 	}
 	return m.FilteredWT[m.WorktreeIdx], true
+}
+
+func (m Model) SelectedTool() (string, bool) {
+	if len(m.FilteredTools) == 0 || m.ToolIdx >= len(m.FilteredTools) {
+		return "", false
+	}
+	return m.FilteredTools[m.ToolIdx], true
 }

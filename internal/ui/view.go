@@ -2,22 +2,11 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/ariguillegp/solo/internal/core"
 )
-
-func hasExactMatch(worktrees []core.Worktree, query string) bool {
-	query = strings.ToLower(query)
-	for _, wt := range worktrees {
-		if strings.ToLower(wt.Name) == query || strings.ToLower(wt.Branch) == query {
-			return true
-		}
-	}
-	return false
-}
 
 func (m Model) View() string {
 	var content string
@@ -26,7 +15,7 @@ func (m Model) View() string {
 	case core.ModeLoading:
 		content = m.spinner.View() + " Scanning..."
 
-	case core.ModeBrowsing, core.ModeCreateDir:
+	case core.ModeBrowsing:
 		prompt := promptStyle.Render("Enter the project directory")
 		input := prompt + "\n" + m.input.View()
 
@@ -56,6 +45,25 @@ func (m Model) View() string {
 			content = input + "\n" + suggestion + nav
 		} else if m.core.WorktreeQuery != "" {
 			content = input + "\n" + suggestionStyle.Render("(create new: "+m.core.WorktreeQuery+")")
+		} else {
+			content = input
+		}
+
+		if m.core.ProjectWarning != "" {
+			content += "\n" + warningStyle.Render(m.core.ProjectWarning)
+		}
+
+	case core.ModeTool:
+		prompt := promptStyle.Render("Select tool")
+		input := prompt + "\n" + m.toolInput.View()
+
+		if tool, ok := m.core.SelectedTool(); ok {
+			suggestion := suggestionStyle.Render(tool)
+			nav := ""
+			if len(m.core.FilteredTools) > 1 {
+				nav = navStyle.Render(fmt.Sprintf("  [%d/%d]", m.core.ToolIdx+1, len(m.core.FilteredTools)))
+			}
+			content = input + "\n" + suggestion + nav
 		} else {
 			content = input
 		}

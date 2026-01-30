@@ -13,20 +13,21 @@ type Model struct {
 	core          core.Model
 	input         textinput.Model
 	worktreeInput textinput.Model
+	toolInput     textinput.Model
 	spinner       spinner.Model
 	fs            ports.Filesystem
-	sessions      ports.SessionManager
 	maxDepth      int
 	width         int
 	height        int
-	SelectedDir   string
+	SelectedSpec  *core.SessionSpec
 }
 
-func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Model {
+func New(roots []string, fs ports.Filesystem) Model {
 	ti := textinput.New()
 	ti.Focus()
 
 	wti := textinput.New()
+	tti := textinput.New()
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -35,9 +36,9 @@ func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Mod
 		core:          core.NewModel(roots),
 		input:         ti,
 		worktreeInput: wti,
+		toolInput:     tti,
 		spinner:       sp,
 		fs:            fs,
-		sessions:      sessions,
 		maxDepth:      2,
 	}
 }
@@ -65,79 +66,63 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		key := msg.String()
+		prevMode := m.core.Mode
 
-		if m.core.Mode == core.ModeBrowsing {
-			switch key {
-			case "up", "down", "ctrl+k", "ctrl+j", "enter", "ctrl+n", "esc", "ctrl+c":
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				if dir := extractSelectedDir(effects); dir != "" {
-					m.SelectedDir = dir
-				}
-				if m.core.Mode == core.ModeWorktree {
-					m.input.Blur()
-					m.worktreeInput.Focus()
-				}
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
+		coreModel, effects, handled := core.UpdateKey(m.core, key)
+		m.core = coreModel
+		if spec := extractSessionSpec(effects); spec != nil {
+			m.SelectedSpec = spec
+		}
+
+		if prevMode == core.ModeBrowsing && m.core.Mode == core.ModeWorktree {
+			m.input.Blur()
+			m.worktreeInput.Focus()
+		}
+		if prevMode == core.ModeWorktree && m.core.Mode == core.ModeBrowsing {
+			m.worktreeInput.SetValue("")
+			m.worktreeInput.Blur()
+			m.input.Focus()
+		}
+		if prevMode == core.ModeWorktree && m.core.Mode == core.ModeTool {
+			m.worktreeInput.Blur()
+			m.toolInput.SetValue("")
+			m.toolInput.Focus()
+		}
+		if prevMode == core.ModeTool && m.core.Mode == core.ModeWorktree {
+			m.toolInput.SetValue("")
+			m.toolInput.Blur()
+			m.worktreeInput.Focus()
+		}
+
+		if !handled {
+			var cmd tea.Cmd
+			switch m.core.Mode {
+			case core.ModeBrowsing:
 				m.input, cmd = m.input.Update(msg)
 				cmds = append(cmds, cmd)
 
 				coreModel, effects := core.Update(m.core, core.MsgQueryChanged{Query: m.input.Value()})
 				m.core = coreModel
 				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
-			}
-		}
-
-		if m.core.Mode == core.ModeCreateDir {
-			switch key {
-			case "enter", "esc":
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
-				m.input, cmd = m.input.Update(msg)
-				cmds = append(cmds, cmd)
-
-				coreModel, effects := core.Update(m.core, core.MsgQueryChanged{Query: m.input.Value()})
-				m.core = coreModel
-				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
-			}
-		}
-
-		if m.core.Mode == core.ModeWorktree {
-			switch key {
-			case "up", "down", "ctrl+k", "ctrl+j", "enter", "ctrl+n", "esc", "ctrl+c":
-				prevMode := m.core.Mode
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				if dir := extractSelectedDir(effects); dir != "" {
-					m.SelectedDir = dir
-				}
-				if prevMode == core.ModeWorktree && m.core.Mode == core.ModeBrowsing {
-					m.worktreeInput.SetValue("")
-					m.worktreeInput.Blur()
-					m.input.Focus()
-				}
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
+			case core.ModeWorktree:
 				m.worktreeInput, cmd = m.worktreeInput.Update(msg)
 				cmds = append(cmds, cmd)
 
 				coreModel, effects := core.Update(m.core, core.MsgWorktreeQueryChanged{Query: m.worktreeInput.Value()})
 				m.core = coreModel
 				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
+			case core.ModeTool:
+				m.toolInput, cmd = m.toolInput.Update(msg)
+				cmds = append(cmds, cmd)
+
+				coreModel, effects := core.Update(m.core, core.MsgToolQueryChanged{Query: m.toolInput.Value()})
+				m.core = coreModel
+				cmds = append(cmds, m.runEffects(effects))
 			}
 		}
+
+		cmds = append(cmds, m.runEffects(effects))
+		return m, tea.Batch(cmds...)
 
 	case scanCompletedMsg:
 		coreModel, effects := core.Update(m.core, core.MsgScanCompleted{
@@ -148,14 +133,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.runEffects(effects)
 		return m, cmd
 
-	case createDirCompletedMsg:
-		coreModel, effects := core.Update(m.core, core.MsgCreateDirCompleted{
-			Path: msg.path,
-			Err:  msg.err,
+	case projectCreatedMsg:
+		coreModel, effects := core.Update(m.core, core.MsgProjectCreated{
+			ProjectPath: msg.projectPath,
+			Err:         msg.err,
 		})
 		m.core = coreModel
-		if dir := extractSelectedDir(effects); dir != "" {
-			m.SelectedDir = dir
+		if spec := extractSessionSpec(effects); spec != nil {
+			m.SelectedSpec = spec
 		}
 		m.worktreeInput.Focus()
 		cmd := m.runEffects(effects)
@@ -164,11 +149,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case worktreesLoadedMsg:
 		coreModel, effects := core.Update(m.core, core.MsgWorktreesLoaded{
 			Worktrees: msg.worktrees,
+			Warning:   msg.warning,
 			Err:       msg.err,
 		})
 		m.core = coreModel
-		if dir := extractSelectedDir(effects); dir != "" {
-			m.SelectedDir = dir
+		if spec := extractSessionSpec(effects); spec != nil {
+			m.SelectedSpec = spec
 		}
 		m.worktreeInput.Focus()
 		cmd := m.runEffects(effects)
@@ -180,8 +166,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Err:  msg.err,
 		})
 		m.core = coreModel
-		if dir := extractSelectedDir(effects); dir != "" {
-			m.SelectedDir = dir
+		if spec := extractSessionSpec(effects); spec != nil {
+			m.SelectedSpec = spec
+		}
+		if m.core.Mode == core.ModeTool {
+			m.worktreeInput.Blur()
+			m.toolInput.SetValue("")
+			m.toolInput.Focus()
 		}
 		cmd := m.runEffects(effects)
 		return m, cmd
@@ -195,13 +186,14 @@ type scanCompletedMsg struct {
 	err  error
 }
 
-type createDirCompletedMsg struct {
-	path string
-	err  error
+type projectCreatedMsg struct {
+	projectPath string
+	err         error
 }
 
 type worktreesLoadedMsg struct {
 	worktrees []core.Worktree
+	warning   string
 	err       error
 }
 
@@ -217,8 +209,8 @@ func (m Model) runEffects(effects []core.Effect) tea.Cmd {
 		switch e := eff.(type) {
 		case core.EffScanDirs:
 			cmds = append(cmds, m.scanDirsCmd(e.Roots))
-		case core.EffMkdirAll:
-			cmds = append(cmds, m.mkdirCmd(e.Path))
+		case core.EffCreateProject:
+			cmds = append(cmds, m.createProjectCmd(e.Path))
 		case core.EffLoadWorktrees:
 			cmds = append(cmds, m.loadWorktreesCmd(e.ProjectPath))
 		case core.EffCreateWorktree:
@@ -236,13 +228,14 @@ func (m Model) runEffects(effects []core.Effect) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func extractSelectedDir(effects []core.Effect) string {
+func extractSessionSpec(effects []core.Effect) *core.SessionSpec {
 	for _, eff := range effects {
 		if e, ok := eff.(core.EffOpenSession); ok {
-			return e.Spec.DirPath
+			spec := e.Spec
+			return &spec
 		}
 	}
-	return ""
+	return nil
 }
 
 func (m Model) scanDirsCmd(roots []string) tea.Cmd {
@@ -252,17 +245,17 @@ func (m Model) scanDirsCmd(roots []string) tea.Cmd {
 	}
 }
 
-func (m Model) mkdirCmd(path string) tea.Cmd {
+func (m Model) createProjectCmd(path string) tea.Cmd {
 	return func() tea.Msg {
-		expandedPath, err := m.fs.MkdirAll(path)
-		return createDirCompletedMsg{path: expandedPath, err: err}
+		projectPath, err := m.fs.CreateProject(path)
+		return projectCreatedMsg{projectPath: projectPath, err: err}
 	}
 }
 
 func (m Model) loadWorktreesCmd(projectPath string) tea.Cmd {
 	return func() tea.Msg {
-		worktrees, err := m.fs.ListWorktrees(projectPath)
-		return worktreesLoadedMsg{worktrees: worktrees, err: err}
+		listing, err := m.fs.ListWorktrees(projectPath)
+		return worktreesLoadedMsg{worktrees: listing.Worktrees, warning: listing.Warning, err: err}
 	}
 }
 
