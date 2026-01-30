@@ -72,7 +72,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+		return
 	}
+	_ = returnToPreviousSession()
 }
 
 func resetTerminal() error {
@@ -81,6 +83,17 @@ func resetTerminal() error {
 	stty.Stdout = os.Stdout
 	stty.Stderr = os.Stderr
 	return stty.Run()
+}
+
+func returnToPreviousSession() error {
+	if os.Getenv("TMUX") == "" {
+		return nil
+	}
+	cmd := exec.Command("tmux", "switch-client", "-l")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func resolveSessionSpec(fs ports.Filesystem, roots []string, project, worktree, tool string, createProject bool, detach bool) (core.SessionSpec, error) {
