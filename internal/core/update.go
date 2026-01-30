@@ -21,7 +21,8 @@ func Update(m Model, msg Msg) (Model, []Effect) {
 		return m, nil
 
 	case MsgKeyPress:
-		return handleKey(m, msg.Key)
+		model, effects, _ := handleKey(m, msg.Key)
+		return model, effects
 
 	case MsgProjectCreated:
 		if msg.Err != nil {
@@ -77,7 +78,11 @@ func Update(m Model, msg Msg) (Model, []Effect) {
 	return m, nil
 }
 
-func handleKey(m Model, key string) (Model, []Effect) {
+func UpdateKey(m Model, key string) (Model, []Effect, bool) {
+	return handleKey(m, key)
+}
+
+func handleKey(m Model, key string) (Model, []Effect, bool) {
 	switch m.Mode {
 	case ModeBrowsing:
 		return handleBrowsingKey(m, key)
@@ -86,52 +91,58 @@ func handleKey(m Model, key string) (Model, []Effect) {
 	case ModeTool:
 		return handleToolKey(m, key)
 	}
-	return m, nil
+	return m, nil, false
 }
 
-func handleBrowsingKey(m Model, key string) (Model, []Effect) {
+func handleBrowsingKey(m Model, key string) (Model, []Effect, bool) {
 	switch key {
 	case "up", "ctrl+k":
 		if m.SelectedIdx > 0 {
 			m.SelectedIdx--
 		}
+		return m, nil, true
 	case "down", "ctrl+j":
 		if m.SelectedIdx < len(m.Filtered)-1 {
 			m.SelectedIdx++
 		}
+		return m, nil, true
 	case "enter":
 		if dir, ok := m.SelectedDir(); ok {
 			m.SelectedProject = dir.Path
 			m.Mode = ModeWorktree
 			m.WorktreeQuery = ""
 			m.WorktreeIdx = 0
-			return m, []Effect{EffLoadWorktrees{ProjectPath: dir.Path}}
+			return m, []Effect{EffLoadWorktrees{ProjectPath: dir.Path}}, true
 		}
 		if m.Query != "" && len(m.RootPaths) > 0 {
 			path := m.RootPaths[0] + "/" + m.Query
-			return m, []Effect{EffCreateProject{Path: path}}
+			return m, []Effect{EffCreateProject{Path: path}}, true
 		}
+		return m, nil, true
 	case "ctrl+n":
 		if m.Query != "" && len(m.RootPaths) > 0 {
 			path := m.RootPaths[0] + "/" + m.Query
-			return m, []Effect{EffCreateProject{Path: path}}
+			return m, []Effect{EffCreateProject{Path: path}}, true
 		}
+		return m, nil, true
 	case "esc", "ctrl+c":
-		return m, []Effect{EffQuit{}}
+		return m, []Effect{EffQuit{}}, true
 	}
-	return m, nil
+	return m, nil, false
 }
 
-func handleWorktreeKey(m Model, key string) (Model, []Effect) {
+func handleWorktreeKey(m Model, key string) (Model, []Effect, bool) {
 	switch key {
 	case "up", "ctrl+k":
 		if m.WorktreeIdx > 0 {
 			m.WorktreeIdx--
 		}
+		return m, nil, true
 	case "down", "ctrl+j":
 		if m.WorktreeIdx < len(m.FilteredWT)-1 {
 			m.WorktreeIdx++
 		}
+		return m, nil, true
 	case "enter":
 		if wt, ok := m.SelectedWorktree(); ok {
 			m.SelectedWorktreePath = wt.Path
@@ -139,21 +150,23 @@ func handleWorktreeKey(m Model, key string) (Model, []Effect) {
 			m.ToolQuery = ""
 			m.FilteredTools = FilterTools(m.Tools, m.ToolQuery)
 			m.ToolIdx = 0
-			return m, nil
+			return m, nil, true
 		}
 		if m.WorktreeQuery != "" {
 			return m, []Effect{EffCreateWorktree{
 				ProjectPath: m.SelectedProject,
 				BranchName:  m.WorktreeQuery,
-			}}
+			}}, true
 		}
+		return m, nil, true
 	case "ctrl+n":
 		if m.WorktreeQuery != "" {
 			return m, []Effect{EffCreateWorktree{
 				ProjectPath: m.SelectedProject,
 				BranchName:  m.WorktreeQuery,
-			}}
+			}}, true
 		}
+		return m, nil, true
 	case "esc":
 		m.Mode = ModeBrowsing
 		m.WorktreeQuery = ""
@@ -162,38 +175,43 @@ func handleWorktreeKey(m Model, key string) (Model, []Effect) {
 		m.WorktreeIdx = 0
 		m.ProjectWarning = ""
 		m.SelectedWorktreePath = ""
+		return m, nil, true
 	case "ctrl+c":
-		return m, []Effect{EffQuit{}}
+		return m, []Effect{EffQuit{}}, true
 	}
-	return m, nil
+	return m, nil, false
 }
 
-func handleToolKey(m Model, key string) (Model, []Effect) {
+func handleToolKey(m Model, key string) (Model, []Effect, bool) {
 	switch key {
 	case "up", "ctrl+k":
 		if m.ToolIdx > 0 {
 			m.ToolIdx--
 		}
+		return m, nil, true
 	case "down", "ctrl+j":
 		if m.ToolIdx < len(m.FilteredTools)-1 {
 			m.ToolIdx++
 		}
+		return m, nil, true
 	case "enter":
 		if tool, ok := m.SelectedTool(); ok && m.SelectedWorktreePath != "" {
 			spec := SessionSpec{
 				DirPath: m.SelectedWorktreePath,
 				Tool:    tool,
 			}
-			return m, []Effect{EffOpenSession{Spec: spec}}
+			return m, []Effect{EffOpenSession{Spec: spec}}, true
 		}
+		return m, nil, true
 	case "esc":
 		m.Mode = ModeWorktree
 		m.ToolQuery = ""
 		m.ToolIdx = 0
+		return m, nil, true
 	case "ctrl+c":
-		return m, []Effect{EffQuit{}}
+		return m, []Effect{EffQuit{}}, true
 	}
-	return m, nil
+	return m, nil, false
 }
 
 func Init(m Model) (Model, []Effect) {

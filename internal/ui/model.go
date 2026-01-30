@@ -66,93 +66,63 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		key := msg.String()
+		prevMode := m.core.Mode
 
-		if m.core.Mode == core.ModeBrowsing {
-			switch key {
-			case "up", "down", "ctrl+k", "ctrl+j", "enter", "ctrl+n", "esc", "ctrl+c":
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				if spec := extractSessionSpec(effects); spec != nil {
-					m.SelectedSpec = spec
-				}
-				if m.core.Mode == core.ModeWorktree {
-					m.input.Blur()
-					m.worktreeInput.Focus()
-				}
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
+		coreModel, effects, handled := core.UpdateKey(m.core, key)
+		m.core = coreModel
+		if spec := extractSessionSpec(effects); spec != nil {
+			m.SelectedSpec = spec
+		}
+
+		if prevMode == core.ModeBrowsing && m.core.Mode == core.ModeWorktree {
+			m.input.Blur()
+			m.worktreeInput.Focus()
+		}
+		if prevMode == core.ModeWorktree && m.core.Mode == core.ModeBrowsing {
+			m.worktreeInput.SetValue("")
+			m.worktreeInput.Blur()
+			m.input.Focus()
+		}
+		if prevMode == core.ModeWorktree && m.core.Mode == core.ModeTool {
+			m.worktreeInput.Blur()
+			m.toolInput.SetValue("")
+			m.toolInput.Focus()
+		}
+		if prevMode == core.ModeTool && m.core.Mode == core.ModeWorktree {
+			m.toolInput.SetValue("")
+			m.toolInput.Blur()
+			m.worktreeInput.Focus()
+		}
+
+		if !handled {
+			var cmd tea.Cmd
+			switch m.core.Mode {
+			case core.ModeBrowsing:
 				m.input, cmd = m.input.Update(msg)
 				cmds = append(cmds, cmd)
 
 				coreModel, effects := core.Update(m.core, core.MsgQueryChanged{Query: m.input.Value()})
 				m.core = coreModel
 				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
-			}
-		}
-
-		if m.core.Mode == core.ModeWorktree {
-			switch key {
-			case "up", "down", "ctrl+k", "ctrl+j", "enter", "ctrl+n", "esc", "ctrl+c":
-				prevMode := m.core.Mode
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				if spec := extractSessionSpec(effects); spec != nil {
-					m.SelectedSpec = spec
-				}
-				if prevMode == core.ModeWorktree && m.core.Mode == core.ModeBrowsing {
-					m.worktreeInput.SetValue("")
-					m.worktreeInput.Blur()
-					m.input.Focus()
-				}
-				if prevMode == core.ModeWorktree && m.core.Mode == core.ModeTool {
-					m.worktreeInput.Blur()
-					m.toolInput.SetValue("")
-					m.toolInput.Focus()
-				}
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
+			case core.ModeWorktree:
 				m.worktreeInput, cmd = m.worktreeInput.Update(msg)
 				cmds = append(cmds, cmd)
 
 				coreModel, effects := core.Update(m.core, core.MsgWorktreeQueryChanged{Query: m.worktreeInput.Value()})
 				m.core = coreModel
 				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
-			}
-		}
-
-		if m.core.Mode == core.ModeTool {
-			switch key {
-			case "up", "down", "ctrl+k", "ctrl+j", "enter", "esc", "ctrl+c":
-				prevMode := m.core.Mode
-				coreModel, effects := core.Update(m.core, core.MsgKeyPress{Key: key})
-				m.core = coreModel
-				if spec := extractSessionSpec(effects); spec != nil {
-					m.SelectedSpec = spec
-				}
-				if prevMode == core.ModeTool && m.core.Mode == core.ModeWorktree {
-					m.toolInput.SetValue("")
-					m.toolInput.Blur()
-					m.worktreeInput.Focus()
-				}
-				cmd := m.runEffects(effects)
-				return m, cmd
-			default:
-				var cmd tea.Cmd
+			case core.ModeTool:
 				m.toolInput, cmd = m.toolInput.Update(msg)
 				cmds = append(cmds, cmd)
 
 				coreModel, effects := core.Update(m.core, core.MsgToolQueryChanged{Query: m.toolInput.Value()})
 				m.core = coreModel
 				cmds = append(cmds, m.runEffects(effects))
-				return m, tea.Batch(cmds...)
 			}
 		}
+
+		cmds = append(cmds, m.runEffects(effects))
+		return m, tea.Batch(cmds...)
 
 	case scanCompletedMsg:
 		coreModel, effects := core.Update(m.core, core.MsgScanCompleted{
