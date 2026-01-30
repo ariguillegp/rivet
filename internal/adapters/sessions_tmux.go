@@ -25,10 +25,9 @@ func (t *TmuxSession) OpenSession(spec core.SessionSpec) error {
 		return fmt.Errorf("session tool is required")
 	}
 
-	projectName, worktreeName := sessionParts(spec.DirPath)
+	cleanPath := filepath.Clean(spec.DirPath)
 	sessionName := strings.Join([]string{
-		sanitizeSessionPart(projectName, "project"),
-		sanitizeSessionPart(worktreeName, "worktree"),
+		sanitizeSessionPart(cleanPath, "worktree"),
 		sanitizeSessionPart(spec.Tool, "tool"),
 	}, "__")
 
@@ -50,17 +49,6 @@ func (t *TmuxSession) OpenSession(spec core.SessionSpec) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-func sessionParts(dirPath string) (string, string) {
-	cleanPath := filepath.Clean(dirPath)
-	worktreeName := filepath.Base(cleanPath)
-	parent := filepath.Dir(cleanPath)
-	projectName := filepath.Base(parent)
-	if projectName == "." || projectName == string(filepath.Separator) || projectName == "" {
-		projectName = worktreeName
-	}
-	return projectName, worktreeName
 }
 
 var sessionNamePattern = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
