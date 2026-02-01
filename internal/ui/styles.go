@@ -8,67 +8,66 @@ const (
 	boxWidthPercent = 50
 )
 
-var (
-	gruvboxYellow = lipgloss.Color("#c5a97a")
-	red           = lipgloss.Color("#e06c75")
-	lightGray     = lipgloss.Color("#6a6a6a")
-	warningOrange = lipgloss.Color("#e0b36c")
-	white         = lipgloss.Color("#ffffff")
+type Styles struct {
+	Title              lipgloss.Style
+	Suggestion         lipgloss.Style
+	SelectedSuggestion lipgloss.Style
+	ScrollIndicator    lipgloss.Style
+	Help               lipgloss.Style
+	Key                lipgloss.Style
+	Prompt             lipgloss.Style
+	Error              lipgloss.Style
+	Warning            lipgloss.Style
+	DestructiveTitle   lipgloss.Style
+	DestructiveText    lipgloss.Style
+	DestructiveAction  lipgloss.Style
+	BaseBox            lipgloss.Style
+}
 
-	titleStyle = lipgloss.NewStyle().
-			Foreground(gruvboxYellow).
-			Bold(true)
-
-	suggestionStyle = lipgloss.NewStyle().
-			Foreground(lightGray)
-
-	selectedSuggestionStyle = lipgloss.NewStyle().
-				Foreground(white).
-				Bold(true)
-
-	scrollIndicatorStyle = lipgloss.NewStyle().
-				Foreground(lightGray)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(lightGray)
-
-	keyStyle = lipgloss.NewStyle().
-			Foreground(gruvboxYellow).
-			Background(lipgloss.Color("#3a3a3a")).
+func NewStyles(theme Theme) Styles {
+	destructiveRed := lipgloss.Color("#ff5555")
+	return Styles{
+		Title: lipgloss.NewStyle().
+			Foreground(theme.Accent).
+			Bold(true),
+		Suggestion: lipgloss.NewStyle().
+			Foreground(theme.Muted),
+		SelectedSuggestion: lipgloss.NewStyle().
+			Foreground(theme.Text).
+			Bold(true),
+		ScrollIndicator: lipgloss.NewStyle().
+			Foreground(theme.Muted),
+		Help: lipgloss.NewStyle().
+			Foreground(theme.Muted),
+		Key: lipgloss.NewStyle().
+			Foreground(theme.Accent).
+			Background(theme.Background).
 			Padding(0, 1).
-			Bold(true)
-
-	promptStyle = lipgloss.NewStyle().
-			Foreground(gruvboxYellow)
-
-	errorStyle = lipgloss.NewStyle().
-			Foreground(red)
-
-	warningStyle = lipgloss.NewStyle().
-			Foreground(warningOrange)
-
-	destructiveRed = lipgloss.Color("#ff5555")
-
-	destructiveTitleStyle = lipgloss.NewStyle().
-				Foreground(destructiveRed).
-				Bold(true)
-
-	destructiveTextStyle = lipgloss.NewStyle().
-				Foreground(destructiveRed)
-
-	destructiveActionStyle = lipgloss.NewStyle().
-				Foreground(white).
-				Background(destructiveRed).
-				Bold(true).
-				Padding(0, 1)
-
-	baseBoxStyle = lipgloss.NewStyle().
+			Bold(true),
+		Prompt: lipgloss.NewStyle().
+			Foreground(theme.Accent),
+		Error: lipgloss.NewStyle().
+			Foreground(theme.Error),
+		Warning: lipgloss.NewStyle().
+			Foreground(theme.Warning),
+		DestructiveTitle: lipgloss.NewStyle().
+			Foreground(destructiveRed).
+			Bold(true),
+		DestructiveText: lipgloss.NewStyle().
+			Foreground(destructiveRed),
+		DestructiveAction: lipgloss.NewStyle().
+			Foreground(theme.Text).
+			Background(destructiveRed).
+			Bold(true).
+			Padding(0, 1),
+		BaseBox: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(gruvboxYellow).
-			Padding(0, 4)
-)
+			BorderForeground(theme.Accent).
+			Padding(0, 4),
+	}
+}
 
-func boxStyleWithWidth(terminalWidth int) lipgloss.Style {
+func (s Styles) BoxWithWidth(terminalWidth int) lipgloss.Style {
 	width := terminalWidth * boxWidthPercent / 100
 	if width < minBoxWidth {
 		width = minBoxWidth
@@ -76,5 +75,5 @@ func boxStyleWithWidth(terminalWidth int) lipgloss.Style {
 	if width > maxBoxWidth {
 		width = maxBoxWidth
 	}
-	return baseBoxStyle.Width(width)
+	return s.BaseBox.Width(width)
 }

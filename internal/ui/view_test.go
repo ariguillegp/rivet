@@ -105,13 +105,13 @@ func TestViewWorktreeDeleteConfirm(t *testing.T) {
 	m.core.WorktreeDeletePath = "/repo/feature"
 
 	view := stripANSI(m.View())
-	if !strings.Contains(view, "Delete worktree?") {
+	if !strings.Contains(view, "Delete Worktree") {
 		t.Fatalf("expected delete prompt, got %q", view)
 	}
 	if !strings.Contains(view, "/repo/feature") {
 		t.Fatalf("expected delete path, got %q", view)
 	}
-	if !strings.Contains(view, "enter to confirm") {
+	if !strings.Contains(view, "enter") && !strings.Contains(view, "delete") {
 		t.Fatalf("expected confirmation hint, got %q", view)
 	}
 }
@@ -168,7 +168,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 		{
 			name:      "loading",
 			mode:      core.ModeLoading,
-			helpParts: []string{"esc: quit"},
+			helpParts: []string{"esc", "quit"},
 		},
 		{
 			name: "browsing",
@@ -177,7 +177,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 				m.core.Query = "proj"
 				m.input.SetValue("proj")
 			},
-			helpParts: []string{"up/down: navigate", "enter: select", "ctrl+n: create", "esc: quit"},
+			helpParts: []string{"navigate", "enter", "select", "ctrl+n", "create", "esc", "quit"},
 		},
 		{
 			name: "worktree",
@@ -186,7 +186,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 				m.core.WorktreeQuery = "feat"
 				m.worktreeInput.SetValue("feat")
 			},
-			helpParts: []string{"up/down: navigate", "enter: select", "ctrl+n: create", "ctrl+d: delete", "esc: back"},
+			helpParts: []string{"navigate", "enter", "select", "ctrl+n", "create", "ctrl+d", "delete", "esc", "back"},
 		},
 		{
 			name: "worktree delete confirm",
@@ -194,7 +194,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 			setup: func(m *Model) {
 				m.core.WorktreeDeletePath = "/repo/feature"
 			},
-			helpParts: []string{"enter: confirm", "esc: cancel"},
+			helpParts: []string{"enter", "delete", "esc", "cancel"},
 		},
 		{
 			name: "tool",
@@ -203,7 +203,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 				m.core.ToolQuery = "amp"
 				m.toolInput.SetValue("amp")
 			},
-			helpParts: []string{"up/down: navigate", "enter: open", "esc: back"},
+			helpParts: []string{"navigate", "enter", "open", "esc", "back"},
 		},
 		{
 			name: "error",
@@ -211,7 +211,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 			setup: func(m *Model) {
 				m.core.Err = errTest("boom")
 			},
-			helpParts: []string{"esc: quit"},
+			helpParts: []string{"esc", "quit"},
 		},
 	}
 

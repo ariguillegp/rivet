@@ -9,17 +9,17 @@ import (
 	"github.com/ariguillegp/solo/internal/core"
 )
 
-func renderHelpLine(items []struct{ key, desc string }) string {
+func (m Model) renderHelpLine(items []struct{ key, desc string }) string {
 	var parts []string
 	for _, item := range items {
-		parts = append(parts, keyStyle.Render(item.key)+" "+helpStyle.Render(item.desc))
+		parts = append(parts, m.styles.Key.Render(item.key)+" "+m.styles.Help.Render(item.desc))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, strings.Join(parts, "  "))
 }
 
 const maxSuggestions = 5
 
-func renderSuggestionList(lines []string, selectedIdx int) string {
+func (m Model) renderSuggestionList(lines []string, selectedIdx int) string {
 	if len(lines) == 0 {
 		return ""
 	}
@@ -42,7 +42,7 @@ func renderSuggestionList(lines []string, selectedIdx int) string {
 	var out strings.Builder
 
 	if start > 0 {
-		out.WriteString(scrollIndicatorStyle.Render("  ▲ more above"))
+		out.WriteString(m.styles.ScrollIndicator.Render("  ▲ more above"))
 		out.WriteString("\n")
 	}
 
@@ -58,22 +58,26 @@ func renderSuggestionList(lines []string, selectedIdx int) string {
 
 		var row string
 		if i == selectedIdx {
-			row = selectedSuggestionStyle.Render(prefix + lines[i])
+			row = m.styles.SelectedSuggestion.Render(prefix + lines[i])
 		} else {
-			row = suggestionStyle.Render(prefix + lines[i])
+			row = m.styles.Suggestion.Render(prefix + lines[i])
 		}
 		out.WriteString(row)
 	}
 
 	if end < len(lines) {
 		out.WriteString("\n")
-		out.WriteString(scrollIndicatorStyle.Render("  ▼ more below"))
+		out.WriteString(m.styles.ScrollIndicator.Render("  ▼ more below"))
 	}
 
 	return out.String()
 }
 
 func (m Model) View() string {
+	if m.showThemePicker {
+		return m.renderThemePicker()
+	}
+
 	var content string
 	var helpLine string
 	var header string
@@ -81,11 +85,11 @@ func (m Model) View() string {
 	switch m.core.Mode {
 	case core.ModeLoading:
 		content = m.spinner.View() + " Scanning..."
-		helpLine = renderHelpLine([]struct{ key, desc string }{{"esc", "quit"}})
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{{"esc", "quit"}})
 
 	case core.ModeBrowsing:
-		header = titleStyle.Render("Step 1: Select Project")
-		prompt := promptStyle.Render("Enter the project directory:")
+		header = m.styles.Title.Render("Step 1: Select Project")
+		prompt := m.styles.Prompt.Render("Enter the project directory:")
 		input := prompt + " " + m.input.View()
 
 		if len(m.core.Filtered) > 0 {
@@ -93,19 +97,19 @@ func (m Model) View() string {
 			for _, dir := range m.core.Filtered {
 				lines = append(lines, dir.Path)
 			}
-			content = input + "\n" + renderSuggestionList(lines, m.core.SelectedIdx)
+			content = input + "\n" + m.renderSuggestionList(lines, m.core.SelectedIdx)
 		} else if m.core.Query != "" {
-			content = input + "\n" + suggestionStyle.Render("(create new)")
+			content = input + "\n" + m.styles.Suggestion.Render("(create new)")
 		} else {
 			content = input
 		}
-		helpLine = renderHelpLine([]struct{ key, desc string }{
-			{"↑/↓", "navigate"}, {"enter", "select"}, {"ctrl+n", "create"}, {"esc", "quit"},
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{
+			{"↑/↓", "navigate"}, {"enter", "select"}, {"ctrl+n", "create"}, {"ctrl+t", "theme"}, {"esc", "quit"},
 		})
 
 	case core.ModeWorktree:
-		header = titleStyle.Render("Step 2: Select Worktree")
-		prompt := promptStyle.Render("Select worktree or create new branch:")
+		header = m.styles.Title.Render("Step 2: Select Worktree")
+		prompt := m.styles.Prompt.Render("Select worktree or create new branch:")
 		input := prompt + " " + m.worktreeInput.View()
 
 		if len(m.core.FilteredWT) > 0 {
@@ -113,46 +117,46 @@ func (m Model) View() string {
 			for _, wt := range m.core.FilteredWT {
 				lines = append(lines, wt.Path)
 			}
-			content = input + "\n" + renderSuggestionList(lines, m.core.WorktreeIdx)
+			content = input + "\n" + m.renderSuggestionList(lines, m.core.WorktreeIdx)
 		} else if m.core.WorktreeQuery != "" {
-			content = input + "\n" + suggestionStyle.Render("(create new: "+m.core.WorktreeQuery+")")
+			content = input + "\n" + m.styles.Suggestion.Render("(create new: "+m.core.WorktreeQuery+")")
 		} else {
 			content = input
 		}
 
 		if m.core.ProjectWarning != "" {
-			content += "\n" + warningStyle.Render(m.core.ProjectWarning)
+			content += "\n" + m.styles.Warning.Render(m.core.ProjectWarning)
 		}
-		helpLine = renderHelpLine([]struct{ key, desc string }{
-			{"↑/↓", "navigate"}, {"enter", "select"}, {"ctrl+n", "create"}, {"ctrl+d", "delete"}, {"esc", "back"},
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{
+			{"↑/↓", "navigate"}, {"enter", "select"}, {"ctrl+n", "create"}, {"ctrl+d", "delete"}, {"ctrl+t", "theme"}, {"esc", "back"},
 		})
 
 	case core.ModeWorktreeDeleteConfirm:
-		header = destructiveTitleStyle.Render("⚠ Delete Worktree")
-		prompt := destructiveTextStyle.Render("This will delete the following worktree:")
-		path := destructiveTextStyle.Render("  " + m.core.WorktreeDeletePath)
-		warning := destructiveTextStyle.Render("This action cannot be undone.")
-		actions := keyStyle.Render("enter") + " " + destructiveActionStyle.Render("delete") + "  " + keyStyle.Render("esc") + " " + helpStyle.Render("cancel")
+		header = m.styles.DestructiveTitle.Render("⚠ Delete Worktree")
+		prompt := m.styles.DestructiveText.Render("This will delete the following worktree:")
+		path := m.styles.DestructiveText.Render("  " + m.core.WorktreeDeletePath)
+		warning := m.styles.DestructiveText.Render("This action cannot be undone.")
+		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
 		content = prompt + "\n\n" + path + "\n\n" + warning + "\n\n" + actions
 		helpLine = ""
 
 	case core.ModeTool:
-		header = titleStyle.Render("Step 3: Select Tool")
-		prompt := promptStyle.Render("Select tool:")
+		header = m.styles.Title.Render("Step 3: Select Tool")
+		prompt := m.styles.Prompt.Render("Select tool:")
 		input := prompt + " " + m.toolInput.View()
 
 		if len(m.core.FilteredTools) > 0 {
-			content = input + "\n" + renderSuggestionList(m.core.FilteredTools, m.core.ToolIdx)
+			content = input + "\n" + m.renderSuggestionList(m.core.FilteredTools, m.core.ToolIdx)
 		} else {
 			content = input
 		}
-		helpLine = renderHelpLine([]struct{ key, desc string }{
-			{"↑/↓", "navigate"}, {"enter", "open"}, {"esc", "back"},
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{
+			{"↑/↓", "navigate"}, {"enter", "open"}, {"ctrl+t", "theme"}, {"esc", "back"},
 		})
 
 	case core.ModeError:
-		content = errorStyle.Render(fmt.Sprintf("Error: %v", m.core.Err))
-		helpLine = renderHelpLine([]struct{ key, desc string }{{"esc", "quit"}})
+		content = m.styles.Error.Render(fmt.Sprintf("Error: %v", m.core.Err))
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{{"esc", "quit"}})
 	}
 
 	if header != "" {
@@ -163,7 +167,48 @@ func (m Model) View() string {
 		content += "\n\n" + helpLine
 	}
 
-	boxStyle := boxStyleWithWidth(m.width)
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	box := boxStyle.Render(content)
+
+	if m.height <= 0 || m.width <= 0 {
+		return box
+	}
+
+	return lipgloss.Place(
+		m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		box,
+	)
+}
+
+func (m Model) renderThemePicker() string {
+	header := m.styles.Title.Render("Select Theme")
+
+	var out strings.Builder
+	for i, theme := range m.themes {
+		prefix := "  "
+		if i == m.themeIdx {
+			prefix = "> "
+		}
+		var row string
+		if i == m.themeIdx {
+			row = m.styles.SelectedSuggestion.Render(prefix + theme.Name)
+		} else {
+			row = m.styles.Suggestion.Render(prefix + theme.Name)
+		}
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		out.WriteString(row)
+	}
+
+	helpLine := m.renderHelpLine([]struct{ key, desc string }{
+		{"↑/↓", "navigate"}, {"enter", "select"}, {"esc", "cancel"},
+	})
+
+	content := header + "\n\n" + out.String() + "\n\n" + helpLine
+
+	boxStyle := m.styles.BoxWithWidth(m.width)
 	box := boxStyle.Render(content)
 
 	if m.height <= 0 || m.width <= 0 {
