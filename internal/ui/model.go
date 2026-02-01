@@ -24,10 +24,13 @@ type Model struct {
 
 func New(roots []string, fs ports.Filesystem) Model {
 	ti := textinput.New()
+	ti.Prompt = ""
 	ti.Focus()
 
 	wti := textinput.New()
+	wti.Prompt = ""
 	tti := textinput.New()
+	tti.Prompt = ""
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
