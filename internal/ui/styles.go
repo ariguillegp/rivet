@@ -14,6 +14,9 @@ var (
 	navStyle = lipgloss.NewStyle().
 			Foreground(lightGray)
 
+	helpStyle = lipgloss.NewStyle().
+			Foreground(gruvboxYellow)
+
 	promptStyle = lipgloss.NewStyle().
 			Foreground(gruvboxYellow)
 
