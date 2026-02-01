@@ -10,10 +10,12 @@ import (
 
 func (m Model) View() string {
 	var content string
+	var helpLine string
 
 	switch m.core.Mode {
 	case core.ModeLoading:
 		content = m.spinner.View() + " Scanning..."
+		helpLine = "esc: quit"
 
 	case core.ModeBrowsing:
 		prompt := promptStyle.Render("Enter the project directory")
@@ -31,6 +33,7 @@ func (m Model) View() string {
 		} else {
 			content = input
 		}
+		helpLine = "up/down: navigate  enter: select  ctrl+n: create  esc: quit"
 
 	case core.ModeWorktree:
 		prompt := promptStyle.Render("Select worktree or create new branch")
@@ -52,6 +55,12 @@ func (m Model) View() string {
 		if m.core.ProjectWarning != "" {
 			content += "\n" + warningStyle.Render(m.core.ProjectWarning)
 		}
+		helpLine = "up/down: navigate  enter: select  ctrl+n: create  ctrl+d: delete  esc: back"
+
+	case core.ModeWorktreeDeleteConfirm:
+		prompt := promptStyle.Render("Delete worktree?")
+		content = prompt + "\n" + suggestionStyle.Render(m.core.WorktreeDeletePath) + "\n" + suggestionStyle.Render("(enter to confirm, esc to cancel)")
+		helpLine = "enter: confirm  esc: cancel"
 
 	case core.ModeTool:
 		prompt := promptStyle.Render("Select tool")
@@ -67,9 +76,15 @@ func (m Model) View() string {
 		} else {
 			content = input
 		}
+		helpLine = "up/down: navigate  enter: open  esc: back"
 
 	case core.ModeError:
 		content = errorStyle.Render(fmt.Sprintf("Error: %v", m.core.Err))
+		helpLine = "esc: quit"
+	}
+
+	if helpLine != "" {
+		content += "\n\n" + helpStyle.Render(helpLine)
 	}
 
 	box := boxStyle.Render(content)

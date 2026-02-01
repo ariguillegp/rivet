@@ -84,6 +84,9 @@ my-project/
 The project directory itself is not a git repo; the `main` worktree is the primary repo.
 The `main` worktree is created with an empty commit during project creation.
 
+Stale worktree references (from manually deleted directories) are automatically
+pruned whenever the worktree list is loaded, keeping the list accurate.
+
 ### Keybinding Examples
 
 Optional bindings to launch `solo` quickly:
@@ -135,6 +138,7 @@ This launches solo in a temporary tmux session to keep your current session clea
 | `↓` / `ctrl+j` | Next worktree |
 | `enter` | Select worktree / create new if typing |
 | `ctrl+n` | Create new worktree with typed branch name |
+| `ctrl+d` | Delete selected worktree (with confirmation) |
 | `esc` | Go back to project selection |
 | `ctrl+c` | Quit |
 
