@@ -24,6 +24,8 @@ type Model struct {
 	themes          []Theme
 	styles          Styles
 	showThemePicker bool
+	prevThemeIdx    int
+	prevStyles      Styles
 }
 
 func New(roots []string, fs ports.Filesystem) Model {
@@ -90,7 +92,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.themeIdx++
 					m.styles = NewStyles(m.themes[m.themeIdx])
 				}
-			case "enter", "esc", "ctrl+t":
+			case "esc":
+				m.themeIdx = m.prevThemeIdx
+				m.styles = m.prevStyles
+				m.showThemePicker = false
+			case "enter", "ctrl+t":
 				m.showThemePicker = false
 			case "ctrl+c":
 				return m, tea.Quit
@@ -99,6 +105,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key == "ctrl+t" && m.core.Mode != core.ModeLoading {
+			m.prevThemeIdx = m.themeIdx
+			m.prevStyles = m.styles
 			m.showThemePicker = true
 			return m, nil
 		}
