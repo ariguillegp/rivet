@@ -2,6 +2,8 @@
 
 A fast terminal-based project picker that launches tmux sessions for agent tools.
 
+![demo](demo.gif)
+
 ## Features
 
 - Fuzzy search across project containers (directories with git worktrees)
