@@ -29,10 +29,8 @@ go install github.com/ariguillegp/solo/cmd/solo@latest
 solo [directories...]
 ```
 
-Solo launches tmux sessions by running your shell as a login shell with `-l`
-(e.g., `bash -lc`). Supported examples include `bash` and `zsh`. Shells such as
-`fish` use `--login` instead. If your login shell does not accept `-l`, set your
-`SHELL` to a compatible shell before using solo.
+Solo starts tools directly inside tmux sessions using your default shell, so no
+login shell flags are required.
 
 By default, solo scans `~/Work/tries`. Pass custom directories as arguments:
 
