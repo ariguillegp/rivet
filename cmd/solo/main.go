@@ -32,7 +32,7 @@ func main() {
 
 	roots := flag.Args()
 	if len(roots) == 0 {
-		roots = []string{"~/Work/tries"}
+		roots = []string{"~/Projects"}
 	}
 
 	fs := adapters.NewOSFilesystem()

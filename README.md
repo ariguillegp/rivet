@@ -75,7 +75,7 @@ solo [directories...]
 Solo starts tools directly inside tmux sessions using your default shell, so no
 login shell flags are required.
 
-By default, solo scans `~/Work/tries` (personal preference). Pass custom directories as arguments:
+By default, solo scans `~/Projects` (personal preference). Pass custom directories as arguments:
 
 ```bash
 solo ~/projects ~/work
