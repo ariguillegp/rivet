@@ -9,6 +9,7 @@ https://github.com/user-attachments/assets/be955ba5-ba2e-4ff0-9047-e9b610c39c34
 - Fuzzy search across project containers and git worktrees
 - Launch tmux sessions running `opencode` or `amp`
 - Keyboard-driven navigation
+- Delete entire projects (including all worktrees) with confirmation
 - Theme picker to customize the UI
 - Help bar at the bottom for better discoverability
 
@@ -106,6 +107,11 @@ solo --project my-project --worktree main --tool opencode --create-project
 
 Press `ctrl+t` to open the theme picker and choose from the available themes. The
 selected theme updates UI colors across the app.
+
+### Project Deletion
+
+Press `ctrl+d` while browsing projects to delete the selected project and all of its
+worktrees. Solo asks for confirmation before performing the deletion.
 
 ### Project Layout
 
