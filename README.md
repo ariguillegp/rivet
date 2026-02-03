@@ -123,6 +123,12 @@ Solo expects projects to be valid git repositories, which by default will be fou
 Stale worktree references (from manually deleted directories) are automatically
 pruned whenever the worktree list is loaded, keeping the list accurate.
 
+### Acknowledgments
+
+Inspired by:
+* [agent-of-empires](https://github.com/njbrake/agent-of-empires) (Rust + ratatui + tmux)
+* [agent-deck](https://github.com/asheshgoplani/agent-deck) (GO + BubbleTea + tmux)
+
 ## License
 
 MIT
