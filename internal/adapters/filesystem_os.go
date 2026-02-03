@@ -128,6 +128,8 @@ func (f *OSFilesystem) DeleteProject(projectPath string) error {
 		return fmt.Errorf("Project has no repository. Create a project first.")
 	}
 
+	_ = f.PruneWorktrees(projectPath)
+
 	worktreePaths, err := f.ListWorktreePaths(projectPath)
 	if err != nil {
 		return err
@@ -137,6 +139,9 @@ func (f *OSFilesystem) DeleteProject(projectPath string) error {
 	for _, wtPath := range worktreePaths {
 		cleanPath := filepath.Clean(wtPath)
 		if cleanPath == filepath.Clean(projectPath) {
+			continue
+		}
+		if _, err := os.Stat(cleanPath); os.IsNotExist(err) {
 			continue
 		}
 		cmd := gitCommand(projectPath, "worktree", "remove", "--force", cleanPath)
