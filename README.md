@@ -2,6 +2,20 @@
 
 A lightweight TUI to manage your fleet of agents across all your projects.
 
+## Run agent tool in worktree (session caching)
+After selecting a project/worktree tuple, the program automatically opens new sessions for every available tool to make the bootstrapping process faster
+
+https://github.com/user-attachments/assets/5d8f25d3-4344-4801-ab51-fb3d00b22c23
+
+## Create/Delete worktree
+Deleting a worktree also kills any session using it.
+
+https://github.com/user-attachments/assets/1d38e6ff-1a80-4322-802b-6f117ae1a05f
+
+## Create/Delete project
+Deleting a project also kills any sessions using it.
+
+https://github.com/user-attachments/assets/4d98a9ac-4e05-4ca3-857e-e670c1a9d65a
 
 ## Features
 
@@ -102,15 +116,9 @@ solo --project my-project --worktree main --tool opencode --create-project
 Press `ctrl+t` to open the theme picker and choose from the available themes. The
 selected theme updates UI colors across the app.
 
-### Project/Worktree Deletion
-
-Press `ctrl+d` while browsing projects to delete the selected project and all of its
-worktrees. Similarly you can use `ctrl+d` to delete worktrees in the worktree selection
-view. `solo` asks for confirmation before performing the deletion.
-
 ### Project Layout
 
-Solo expects projects to be valid git repositories so additional worktrees can be created under `~/.solo/worktrees/`
+Solo expects projects to be valid git repositories, which by default will be found under `~/Projects` and additional worktrees will be created under `~/.solo/worktrees/`
 
 Stale worktree references (from manually deleted directories) are automatically
 pruned whenever the worktree list is loaded, keeping the list accurate.
