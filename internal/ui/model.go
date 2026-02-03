@@ -399,6 +399,21 @@ func (m Model) createProjectCmd(path string) tea.Cmd {
 
 func (m Model) deleteProjectCmd(projectPath string) tea.Cmd {
 	return func() tea.Msg {
+		if m.sessions != nil {
+			paths, err := m.fs.ListWorktreePaths(projectPath)
+			if err != nil {
+				return projectDeletedMsg{projectPath: projectPath, err: err}
+			}
+			for _, path := range paths {
+				for _, tool := range m.core.Tools {
+					spec := core.SessionSpec{DirPath: path, Tool: tool}
+					if err := m.sessions.KillSession(spec); err != nil {
+						return projectDeletedMsg{projectPath: projectPath, err: err}
+					}
+				}
+			}
+		}
+
 		err := m.fs.DeleteProject(projectPath)
 		return projectDeletedMsg{projectPath: projectPath, err: err}
 	}
@@ -420,6 +435,15 @@ func (m Model) createWorktreeCmd(projectPath, branchName string) tea.Cmd {
 
 func (m Model) deleteWorktreeCmd(projectPath, worktreePath string) tea.Cmd {
 	return func() tea.Msg {
+		if m.sessions != nil {
+			for _, tool := range m.core.Tools {
+				spec := core.SessionSpec{DirPath: worktreePath, Tool: tool}
+				if err := m.sessions.KillSession(spec); err != nil {
+					return worktreeDeletedMsg{path: worktreePath, err: err}
+				}
+			}
+		}
+
 		err := m.fs.DeleteWorktree(projectPath, worktreePath)
 		return worktreeDeletedMsg{path: worktreePath, err: err}
 	}

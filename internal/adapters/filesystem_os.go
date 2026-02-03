@@ -128,7 +128,7 @@ func (f *OSFilesystem) DeleteProject(projectPath string) error {
 		return fmt.Errorf("Project has no repository. Create a project first.")
 	}
 
-	worktreePaths, err := listWorktreePaths(projectPath)
+	worktreePaths, err := f.ListWorktreePaths(projectPath)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,12 @@ func (f *OSFilesystem) DeleteProject(projectPath string) error {
 	return nil
 }
 
-func listWorktreePaths(projectPath string) ([]string, error) {
+func (f *OSFilesystem) ListWorktreePaths(projectPath string) ([]string, error) {
+	projectPath = expandPath(projectPath)
+	if !hasGitMarker(projectPath) {
+		return nil, fmt.Errorf("Project has no repository. Create a project first.")
+	}
+
 	cmd := gitCommand(projectPath, "worktree", "list", "--porcelain")
 	output, err := cmd.Output()
 	if err != nil {
