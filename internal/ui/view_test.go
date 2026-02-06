@@ -227,7 +227,9 @@ func TestViewHelpLinePerMode(t *testing.T) {
 			name: "sessions",
 			mode: core.ModeSessions,
 			setup: func(m *Model) {
-				m.core.FilteredSessions = []core.SessionInfo{{Name: "session"}}
+				sessions := []core.SessionInfo{{Name: "session"}}
+				m.core.Sessions = sessions
+				m.core.FilteredSessions = sessions
 			},
 			helpParts: []string{"enter", "attach", "esc", "back"},
 		},

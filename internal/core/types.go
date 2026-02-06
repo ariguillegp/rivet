@@ -41,12 +41,15 @@ type ToolDefinition struct {
 	Env  []string
 }
 
+const ToolNone = "none"
+
 var toolDefinitions = []ToolDefinition{
 	{
 		Name: "opencode",
 		Env:  []string{`OPENCODE_CONFIG_CONTENT={"theme":"gruvbox"}`},
 	},
 	{Name: "amp"},
+	{Name: ToolNone},
 }
 
 func SupportedTools() []string {
@@ -77,6 +80,14 @@ func ToolEnv(tool string) []string {
 		}
 	}
 	return nil
+}
+
+func ToolNeedsWarmup(tool string) bool {
+	tool = strings.TrimSpace(tool)
+	if tool == "" {
+		return false
+	}
+	return tool != ToolNone
 }
 
 func SanitizeWorktreeName(name string) string {

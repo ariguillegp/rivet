@@ -3,7 +3,7 @@
 A lightweight TUI to manage your fleet of agents across all your projects.
 
 ## Run agent tool in worktree (session caching)
-After selecting a project/worktree tuple, the program automatically opens new sessions for every available tool to make the bootstrapping process faster
+After selecting a project/worktree tuple, the program automatically opens new sessions for tools that benefit from warm starts.
 
 https://github.com/user-attachments/assets/5d8f25d3-4344-4801-ab51-fb3d00b22c23
 
@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/4d98a9ac-4e05-4ca3-857e-e670c1a9d65a
 ## Features
 
 - Fuzzy search across project containers and git worktrees
-- Launch tmux sessions running `opencode` or `amp`
+- Launch tmux sessions running `opencode`, `amp`, or `none`
 - Keyboard-driven navigation
 - Delete entire projects (including all worktrees) with confirmation
 - Theme picker to customize the UI
@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/4d98a9ac-4e05-4ca3-857e-e670c1a9d65a
 
 - tmux
 - git
-- `opencode` and/or `amp`
+- `opencode` and/or `amp` (optional for `none` sessions)
 
 ## Installation
 
@@ -103,6 +103,8 @@ Open a session directly without the UI:
 
 ```bash
 solo --project my-project --worktree main --tool opencode [--detach]
+
+solo --project my-project --worktree main --tool none [--detach]
 ```
 
 Create a new project non-interactively:
