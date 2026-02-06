@@ -69,9 +69,12 @@ func (t *TmuxSession) KillSession(spec core.SessionSpec) error {
 
 func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}\t#{session_path}")
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list tmux sessions: %w", err)
+		if strings.Contains(string(output), "no server running") {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to list tmux sessions: %w (output: %s)", err, strings.TrimSpace(string(output)))
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
