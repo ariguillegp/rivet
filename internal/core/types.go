@@ -49,6 +49,7 @@ var toolDefinitions = []ToolDefinition{
 		Env:  []string{`OPENCODE_CONFIG_CONTENT={"theme":"gruvbox"}`},
 	},
 	{Name: "amp"},
+	{Name: "claude"},
 	{Name: ToolNone},
 }
 

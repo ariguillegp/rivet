@@ -11,6 +11,9 @@ func TestIsSupportedTool_DefaultTools(t *testing.T) {
 	if !IsSupportedTool("amp") {
 		t.Error("IsSupportedTool(amp) = false, want true")
 	}
+	if !IsSupportedTool("claude") {
+		t.Error("IsSupportedTool(claude) = false, want true")
+	}
 	if !IsSupportedTool(ToolNone) {
 		t.Error("IsSupportedTool(none) = false, want true")
 	}
