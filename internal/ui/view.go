@@ -192,6 +192,11 @@ func (m Model) View() string {
 
 	case core.ModeSessions:
 		header = m.styles.Title.Render("Active tmux sessions")
+		if len(m.core.Sessions) == 0 {
+			content = m.styles.Help.Render("No active sessions")
+			helpLine = m.renderHelpLine([]struct{ key, desc string }{{"esc", "back"}})
+			break
+		}
 		prompt := m.styles.Prompt.Render("Filter sessions:")
 		input := prompt + " " + m.sessionInput.View()
 		lines := make([]string, 0, len(m.core.FilteredSessions))

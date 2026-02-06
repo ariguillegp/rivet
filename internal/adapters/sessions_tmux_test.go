@@ -53,3 +53,29 @@ func TestKillSessionIgnoresMissingSession(t *testing.T) {
 		t.Fatalf("expected no error when tmux session is missing: %v", err)
 	}
 }
+
+func TestListSessionsIgnoresNoServerRunning(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmuxPath := filepath.Join(tmpDir, "tmux")
+
+	script := "#!/bin/sh\n" +
+		"echo \"no server running on /tmp/tmux-0/default\" 1>&2\n" +
+		"exit 1\n"
+
+	if err := os.WriteFile(tmuxPath, []byte(script), 0755); err != nil {
+		t.Fatalf("failed to write tmux stub: %v", err)
+	}
+
+	pathEnv := os.Getenv("PATH")
+	pathSep := string(os.PathListSeparator)
+	t.Setenv("PATH", tmpDir+pathSep+pathEnv)
+
+	session := &TmuxSession{}
+	sessions, err := session.ListSessions()
+	if err != nil {
+		t.Fatalf("expected no error when tmux server is missing: %v", err)
+	}
+	if len(sessions) != 0 {
+		t.Fatalf("expected no sessions when tmux server is missing")
+	}
+}
