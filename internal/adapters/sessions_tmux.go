@@ -221,6 +221,9 @@ func toolCommand(tool string) (string, []string) {
 	if strings.TrimSpace(shell) == "" {
 		shell = "/bin/sh"
 	}
+	if !core.ToolNeedsWarmup(tool) {
+		return shell, nil
+	}
 	return shell, []string{"-c", `"$1"; exec "$0"`, shell, tool}
 }
 

@@ -357,6 +357,11 @@ func handleToolKey(m Model, key string) (Model, []Effect, bool) {
 				DirPath: m.SelectedWorktreePath,
 				Tool:    tool,
 			}
+			if !ToolNeedsWarmup(tool) {
+				m.PendingSpec = nil
+				m.ToolError = ""
+				return m, []Effect{EffOpenSession{Spec: spec}}, true
+			}
 			m.PendingSpec = &spec
 			m.Mode = ModeToolStarting
 			m.ToolError = ""
@@ -424,7 +429,20 @@ func enterToolMode(m Model) (Model, []Effect) {
 	m.PendingSpec = nil
 	m.ToolWarmStart = make(map[string]time.Time, len(m.Tools))
 	m.ToolErrors = make(map[string]string, len(m.Tools))
-	return m, []Effect{EffPrewarmAllTools{DirPath: m.SelectedWorktreePath, Tools: m.Tools}}
+	return m, []Effect{EffPrewarmAllTools{DirPath: m.SelectedWorktreePath, Tools: toolsNeedingWarmup(m.Tools)}}
+}
+
+func toolsNeedingWarmup(tools []string) []string {
+	if len(tools) == 0 {
+		return nil
+	}
+	filtered := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if ToolNeedsWarmup(tool) {
+			filtered = append(filtered, tool)
+		}
+	}
+	return filtered
 }
 
 func enterSessionsMode(m Model) (Model, []Effect, bool) {
