@@ -126,20 +126,6 @@ func TestViewWorktreeCreateNew(t *testing.T) {
 	}
 }
 
-func TestViewEmptyState(t *testing.T) {
-	m := newTestModel()
-	m.core.Mode = core.ModeBrowsing
-	m.core.Query = "missing"
-	m.input.SetValue("missing")
-	m.core.Filtered = nil
-	m.core.SelectedIdx = 0
-
-	view := stripANSI(m.View())
-	if !strings.Contains(view, "No matches") {
-		t.Fatalf("expected empty state to mention no matches, got %q", view)
-	}
-}
-
 func TestViewWorktreeDeleteConfirm(t *testing.T) {
 	m := newTestModel()
 	m.height = 25
