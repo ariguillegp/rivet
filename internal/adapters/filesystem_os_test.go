@@ -58,6 +58,52 @@ func TestCreateWorktreeCreatesUnderSoloDir(t *testing.T) {
 	})
 }
 
+func TestCreateWorktreeCreatesNestedPathForSlashBranch(t *testing.T) {
+	projectPath := t.TempDir()
+	initRepo(t, projectPath)
+
+	fs := &OSFilesystem{}
+	branch := "feat/test/abc/qwe"
+	worktreePath, err := fs.CreateWorktree(projectPath, branch)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	home, _ := os.UserHomeDir()
+	projectName := filepath.Base(projectPath)
+	baseDir := filepath.Join(home, ".solo", "worktrees", projectName)
+	if !strings.HasPrefix(worktreePath, baseDir) {
+		t.Fatalf("expected worktree under %s, got %s", baseDir, worktreePath)
+	}
+	if worktreePath != filepath.Join(baseDir, "feat", "test", "abc", "qwe") {
+		t.Fatalf("unexpected worktree path: %s", worktreePath)
+	}
+
+	listing, err := fs.ListWorktrees(projectPath)
+	if err != nil {
+		t.Fatalf("unexpected listing error: %v", err)
+	}
+	var found bool
+	for _, wt := range listing.Worktrees {
+		if wt.Path == worktreePath {
+			found = true
+			if wt.Branch != branch {
+				t.Fatalf("expected branch %q, got %q", branch, wt.Branch)
+			}
+			if wt.Name != "qwe" {
+				t.Fatalf("expected worktree name %q, got %q", "qwe", wt.Name)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected worktree %q in listing", worktreePath)
+	}
+
+	t.Cleanup(func() {
+		_ = os.RemoveAll(worktreePath)
+	})
+}
+
 func TestCreateWorktreeRejectsExistingBranch(t *testing.T) {
 	projectPath := t.TempDir()
 	initRepo(t, projectPath)
