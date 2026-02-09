@@ -84,7 +84,7 @@ func Update(m Model, msg Msg) (Model, []Effect) {
 		if msg.Err != nil {
 			if errors.Is(msg.Err, ErrInvalidWorktreeName) {
 				m.Mode = ModeWorktree
-				m.ProjectWarning = "Worktree name must use only letters, numbers, '/', '-', and '_' characters. Please try again."
+				m.ProjectWarning = "Invalid worktree name. Allowed characters: letters A-Z/a-z, digits 0-9, '/', '-', '_'."
 				return m, nil
 			}
 			if errors.Is(msg.Err, ErrWorktreeExists) {
@@ -295,7 +295,7 @@ func handleWorktreeKey(m Model, key string) (Model, []Effect, bool) {
 		}
 		name := strings.TrimSpace(m.WorktreeQuery)
 		if name != "" && !IsValidWorktreeName(name) {
-			m.ProjectWarning = "Worktree name must use only letters, numbers, '/', '-', and '_' characters. Please try again."
+			m.ProjectWarning = "Invalid worktree name. Allowed characters: letters A-Z/a-z, digits 0-9, '/', '-', '_'."
 			return m, nil, true
 		}
 		if name, ok := m.CreateWorktreeName(); ok {
