@@ -311,7 +311,7 @@ func (m Model) View() string {
 		}
 		breadcrumb = m.renderBreadcrumb()
 		content = fmt.Sprintf("%s Starting %s...", m.spinner.View(), toolName)
-		helpLine = m.renderHelpLine([]struct{ key, desc string }{{"?", "help"}, {"esc", "back"}})
+		helpLine = m.renderHelpLine([]struct{ key, desc string }{{"esc", "back"}})
 
 	case core.ModeSessions:
 		header = m.styles.Title.Render("Active tmux sessions")
