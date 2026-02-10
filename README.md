@@ -2,6 +2,16 @@
 
 A lightweight TUI to manage your fleet of agents across all your projects.
 
+## Main Features at a Glance
+
+- Guided 3-step workflow: pick a project, pick/create a workspace (git worktree), then launch a tool.
+- Fast fuzzy filtering in every step (projects, workspaces, tools, and sessions).
+- Built-in tmux session switcher: press `ctrl+s` from the main screens to open **Active tmux sessions**, filter them, and press `enter` to attach.
+- Warm-start support for tool sessions, plus session reuse/caching for quicker reopen flows.
+- Project/workspace lifecycle management in-app (create and delete with confirmation and cleanup).
+- Keyboard-first UX with help modal (`?`) and theme picker (`ctrl+t`).
+- Optional non-interactive mode for launching sessions directly via CLI flags.
+
 ## Run agent tool in worktree (session caching)
 After selecting a project/worktree tuple, the program automatically opens new sessions for tools that benefit from warm starts.
 
@@ -21,6 +31,7 @@ https://github.com/user-attachments/assets/4d98a9ac-4e05-4ca3-857e-e670c1a9d65a
 
 - Fuzzy search across project containers and git worktrees
 - Launch tmux sessions running `opencode`, `amp`, `claude`, `codex`, or `none`
+- Open the active tmux sessions view from most screens with `ctrl+s`, then attach with `enter`
 - Keyboard-driven navigation
 - Delete entire projects (including all worktrees) with confirmation
 - Theme picker to customize the UI
