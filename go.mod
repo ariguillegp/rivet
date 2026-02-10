@@ -1,4 +1,4 @@
-module github.com/ariguillegp/solo
+module github.com/ariguillegp/rivet
 
 go 1.24.0
 

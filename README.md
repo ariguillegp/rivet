@@ -1,4 +1,4 @@
-# solo
+# rivet
 
 A lightweight TUI to manage your fleet of agents across all your projects.
 
@@ -35,8 +35,8 @@ https://github.com/user-attachments/assets/4d98a9ac-4e05-4ca3-857e-e670c1a9d65a
 ## Installation
 
 ```bash
-$ git clone git@github.com:ariguillegp/solo.git
-$ cd solo
+$ git clone git@github.com:ariguillegp/rivet.git
+$ cd rivet
 $ make install
 ```
 
@@ -44,57 +44,57 @@ $ make install
 
 ### Recommended way
 
-Create keybindings to run this tool from your regular shell environment and from inside tmux sessions. If are you are not using `~/Projects/` as your base directory for your project repositories, you will need to run `solo YOUR_BASE_DIR` to find out the repos you wanna work on.
+Create keybindings to run this tool from your regular shell environment and from inside tmux sessions. If are you are not using `~/Projects/` as your base directory for your project repositories, you will need to run `rivet YOUR_BASE_DIR` to find out the repos you wanna work on.
 
 **Bash**
 
 Add the following line to your `~/.bashrc`
 
 ```bash
-bind -x '"\C-f": "solo YOUR_BASE_DIR"'
+bind -x '"\C-f": "rivet YOUR_BASE_DIR"'
 ```
 
 **tmux**
 
-Add the following line to your `~/.tmux.conf` so you can use `tmux-prefix + f` to launch `solo` from a tmux session
+Add the following line to your `~/.tmux.conf` so you can use `tmux-prefix + f` to launch `rivet` from a tmux session
 
 ```tmux
-bind-key f run-shell "tmux has-session -t solo-launcher 2>/dev/null && tmux kill-session -t solo-launcher; tmux new-session -d -s solo-launcher 'bash -lc \"solo YOUR_BASE_DIR\"'; tmux switch-client -t solo-launcher"
+bind-key f run-shell "tmux has-session -t rivet-launcher 2>/dev/null && tmux kill-session -t rivet-launcher; tmux new-session -d -s rivet-launcher 'bash -lc \"rivet YOUR_BASE_DIR\"'; tmux switch-client -t rivet-launcher"
 ```
 
-This launches solo in a temporary tmux session to keep your current session clean.
+This launches rivet in a temporary tmux session to keep your current session clean.
 
 **Zsh**
 
 Add the following line to your `~/.zshrc`
 
 ```bash
-bindkey -s '^f' 'solo YOUR_BASE_DIR\n'
+bindkey -s '^f' 'rivet YOUR_BASE_DIR\n'
 ```
 
 **tmux**
 
-Add the following line to your `~/.tmux.conf` so you can use `tmux-prefix + f` to launch `solo` from a tmux session
+Add the following line to your `~/.tmux.conf` so you can use `tmux-prefix + f` to launch `rivet` from a tmux session
 
 ```tmux
-bind-key f run-shell "tmux has-session -t solo-launcher 2>/dev/null && tmux kill-session -t solo-launcher; tmux new-session -d -s solo-launcher 'zsh -lc \"solo YOUR_BASE_DIR\"'; tmux switch-client -t solo-launcher"
+bind-key f run-shell "tmux has-session -t rivet-launcher 2>/dev/null && tmux kill-session -t rivet-launcher; tmux new-session -d -s rivet-launcher 'zsh -lc \"rivet YOUR_BASE_DIR\"'; tmux switch-client -t rivet-launcher"
 ```
 
-This launches solo in a temporary tmux session to keep your current session clean.
+This launches rivet in a temporary tmux session to keep your current session clean.
 
 ### Interactive launch
 
 ```bash
-solo [directories...]
+rivet [directories...]
 ```
 
-Solo starts tools directly inside tmux sessions using your default shell, so no
+Rivet starts tools directly inside tmux sessions using your default shell, so no
 login shell flags are required.
 
-By default, solo scans `~/Projects` (personal preference). Pass custom directories as arguments:
+By default, rivet scans `~/Projects` (personal preference). Pass custom directories as arguments:
 
 ```bash
-solo ~/projects ~/work
+rivet ~/projects ~/work
 ```
 
 ### Non-Interactive Launch
@@ -102,19 +102,19 @@ solo ~/projects ~/work
 Open a session directly without the UI:
 
 ```bash
-solo --project my-project --worktree main --tool opencode [--detach]
+rivet --project my-project --worktree main --tool opencode [--detach]
 
-solo --project my-project --worktree main --tool claude [--detach]
+rivet --project my-project --worktree main --tool claude [--detach]
 
-solo --project my-project --worktree main --tool codex [--detach]
+rivet --project my-project --worktree main --tool codex [--detach]
 
-solo --project my-project --worktree main --tool none [--detach]
+rivet --project my-project --worktree main --tool none [--detach]
 ```
 
 Create a new project non-interactively:
 
 ```bash
-solo --project my-project --worktree main --tool opencode --create-project
+rivet --project my-project --worktree main --tool opencode --create-project
 ```
 
 ### Theme Picker
@@ -124,7 +124,7 @@ selected theme updates UI colors across the app.
 
 ### Project Layout
 
-Solo expects projects to be valid git repositories, which by default will be found under `~/Projects` and additional worktrees will be created under `~/.solo/worktrees/`
+Rivet expects projects to be valid git repositories, which by default will be found under `~/Projects` and additional worktrees will be created under `~/.rivet/worktrees/`
 
 Stale worktree references (from manually deleted directories) are automatically
 pruned whenever the worktree list is loaded, keeping the list accurate.

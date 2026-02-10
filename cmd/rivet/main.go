@@ -11,10 +11,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/ariguillegp/solo/internal/adapters"
-	"github.com/ariguillegp/solo/internal/core"
-	"github.com/ariguillegp/solo/internal/ports"
-	"github.com/ariguillegp/solo/internal/ui"
+	"github.com/ariguillegp/rivet/internal/adapters"
+	"github.com/ariguillegp/rivet/internal/core"
+	"github.com/ariguillegp/rivet/internal/ports"
+	"github.com/ariguillegp/rivet/internal/ui"
 )
 
 func main() {

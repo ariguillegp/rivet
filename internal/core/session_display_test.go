@@ -5,12 +5,12 @@ import "testing"
 func TestSessionDisplayLabelUsesProjectBranchTool(t *testing.T) {
 	session := SessionInfo{
 		Name:    "raw",
-		DirPath: "/home/demo/.solo/worktrees/solo--feature-1",
+		DirPath: "/home/demo/.rivet/worktrees/rivet--feature-1",
 		Tool:    "amp",
 	}
 
 	label := SessionDisplayLabel(session)
-	if label != "solo/feature-1 - amp" {
+	if label != "rivet/feature-1 - amp" {
 		t.Fatalf("expected label to include project/branch/tool, got %q", label)
 	}
 }
@@ -18,12 +18,12 @@ func TestSessionDisplayLabelUsesProjectBranchTool(t *testing.T) {
 func TestSessionDisplayLabelStripsProjectHash(t *testing.T) {
 	session := SessionInfo{
 		Name:    "raw",
-		DirPath: "/home/demo/.solo/worktrees/solo-abcdef--feature-1",
+		DirPath: "/home/demo/.rivet/worktrees/rivet-abcdef--feature-1",
 		Tool:    "amp",
 	}
 
 	label := SessionDisplayLabel(session)
-	if label != "solo/feature-1 - amp" {
+	if label != "rivet/feature-1 - amp" {
 		t.Fatalf("expected label to strip hash, got %q", label)
 	}
 }

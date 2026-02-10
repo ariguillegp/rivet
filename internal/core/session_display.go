@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const soloWorktreesMarker = "worktrees-"
+const rivetWorktreesMarker = "worktrees-"
 
 func SessionDisplayLabel(session SessionInfo) string {
 	worktreeName := SessionWorktreeName(session.DirPath)
@@ -43,8 +43,8 @@ func SessionWorktreeName(dirPath string) string {
 		}
 	}
 
-	if idx := strings.LastIndex(dirPath, soloWorktreesMarker); idx >= 0 {
-		name := strings.TrimSpace(dirPath[idx+len(soloWorktreesMarker):])
+	if idx := strings.LastIndex(dirPath, rivetWorktreesMarker); idx >= 0 {
+		name := strings.TrimSpace(dirPath[idx+len(rivetWorktreesMarker):])
 		if name != "" {
 			return name
 		}

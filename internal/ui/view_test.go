@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 )
 
 func newTestModel() Model {
@@ -60,16 +60,16 @@ func TestViewBrowsingUsesTildeForHome(t *testing.T) {
 	m.core.Query = "proj"
 	m.input.SetValue("proj")
 	m.core.Filtered = []core.DirEntry{
-		{Path: "/home/demo/Projects/solo", Name: "solo"},
+		{Path: "/home/demo/Projects/rivet", Name: "rivet"},
 	}
 	m.core.SelectedIdx = 0
 	m.homeDir = "/home/demo"
 
 	view := stripANSI(m.View())
-	if !strings.Contains(view, "~/Projects/solo") {
+	if !strings.Contains(view, "~/Projects/rivet") {
 		t.Fatalf("expected home path to use tilde, got %q", view)
 	}
-	if strings.Contains(view, "/home/demo/Projects/solo") {
+	if strings.Contains(view, "/home/demo/Projects/rivet") {
 		t.Fatalf("expected home path to be replaced, got %q", view)
 	}
 }

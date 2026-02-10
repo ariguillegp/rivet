@@ -21,7 +21,7 @@ func TestCreateWorktreeFailsWithoutGitRepo(t *testing.T) {
 	}
 }
 
-func TestCreateWorktreeCreatesUnderSoloDir(t *testing.T) {
+func TestCreateWorktreeCreatesUnderRivetDir(t *testing.T) {
 	projectPath := t.TempDir()
 	initRepo(t, projectPath)
 
@@ -32,9 +32,9 @@ func TestCreateWorktreeCreatesUnderSoloDir(t *testing.T) {
 	}
 
 	home, _ := os.UserHomeDir()
-	soloDir := filepath.Join(home, ".solo", "worktrees")
-	if !strings.HasPrefix(worktreePath, soloDir) {
-		t.Fatalf("expected worktree under %s, got %s", soloDir, worktreePath)
+	rivetDir := filepath.Join(home, ".rivet", "worktrees")
+	if !strings.HasPrefix(worktreePath, rivetDir) {
+		t.Fatalf("expected worktree under %s, got %s", rivetDir, worktreePath)
 	}
 
 	projectPrefix := projectWorktreePrefix(projectPath)
@@ -120,7 +120,7 @@ func TestListWorktreesWarnsWhenNoGitRepo(t *testing.T) {
 	}
 }
 
-func TestListWorktreesIncludesRootAndSoloWorktrees(t *testing.T) {
+func TestListWorktreesIncludesRootAndRivetWorktrees(t *testing.T) {
 	projectPath := t.TempDir()
 	initRepo(t, projectPath)
 
@@ -186,7 +186,7 @@ func TestDeleteWorktreeRejectsProjectRoot(t *testing.T) {
 	}
 }
 
-func TestDeleteWorktreeRejectsPathsOutsideSoloDir(t *testing.T) {
+func TestDeleteWorktreeRejectsPathsOutsideRivetDir(t *testing.T) {
 	projectPath := t.TempDir()
 	initRepo(t, projectPath)
 
@@ -195,7 +195,7 @@ func TestDeleteWorktreeRejectsPathsOutsideSoloDir(t *testing.T) {
 	fs := &OSFilesystem{}
 	err := fs.DeleteWorktree(projectPath, outsidePath)
 	if err == nil {
-		t.Fatal("expected error when deleting outside solo dir")
+		t.Fatal("expected error when deleting outside rivet dir")
 	}
 	if !strings.Contains(err.Error(), "can only delete worktrees under") {
 		t.Fatalf("unexpected error: %v", err)
@@ -203,7 +203,7 @@ func TestDeleteWorktreeRejectsPathsOutsideSoloDir(t *testing.T) {
 }
 
 func TestCreateProjectCreatesGitRepo(t *testing.T) {
-	projectPath := filepath.Join(t.TempDir(), "solo-project")
+	projectPath := filepath.Join(t.TempDir(), "rivet-project")
 
 	fs := &OSFilesystem{}
 	createdPath, err := fs.CreateProject(projectPath)
@@ -300,7 +300,7 @@ func TestScanDirsStopsAtProject(t *testing.T) {
 	}
 }
 
-func TestListWorktreesFiltersNonSoloWorktrees(t *testing.T) {
+func TestListWorktreesFiltersNonRivetWorktrees(t *testing.T) {
 	projectPath := t.TempDir()
 	initRepo(t, projectPath)
 
@@ -333,9 +333,9 @@ func TestDeleteWorktreeRejectsUnregisteredWorktree(t *testing.T) {
 	initRepo(t, projectPath)
 
 	home, _ := os.UserHomeDir()
-	soloDir := filepath.Join(home, ".solo", "worktrees")
+	rivetDir := filepath.Join(home, ".rivet", "worktrees")
 	projectPrefix := projectWorktreePrefix(projectPath)
-	worktreePath := filepath.Join(soloDir, projectPrefix+"--fake-branch")
+	worktreePath := filepath.Join(rivetDir, projectPrefix+"--fake-branch")
 
 	if err := os.MkdirAll(worktreePath, 0755); err != nil {
 		t.Fatalf("unexpected error creating unregistered worktree: %v", err)

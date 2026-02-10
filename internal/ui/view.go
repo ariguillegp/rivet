@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 )
 
 func (m Model) renderHelpLine(items []struct{ key, desc string }) string {

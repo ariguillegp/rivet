@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 )
 
 type OSFilesystem struct{}
@@ -19,7 +19,7 @@ func NewOSFilesystem() *OSFilesystem {
 	return &OSFilesystem{}
 }
 
-const soloWorktreesDir = "~/.solo/worktrees"
+const rivetWorktreesDir = "~/.rivet/worktrees"
 
 var ignoreDirs = map[string]bool{
 	".git":         true,
@@ -197,7 +197,7 @@ func (f *OSFilesystem) ListWorktrees(projectPath string) (core.WorktreeListing, 
 
 	projectName := filepath.Base(projectPath)
 	projectID := projectWorktreePrefix(projectPath)
-	soloDir := expandPath(soloWorktreesDir)
+	rivetDir := expandPath(rivetWorktreesDir)
 	prefix := projectID + "--"
 	legacyPrefix := projectName + "--"
 
@@ -229,10 +229,10 @@ func (f *OSFilesystem) ListWorktrees(projectPath string) (core.WorktreeListing, 
 	for _, wt := range worktrees {
 		wtClean := filepath.Clean(wt.Path)
 		isRoot := wtClean == filepath.Clean(projectPath)
-		isUnderSolo := strings.HasPrefix(wtClean, soloDir+string(filepath.Separator)) &&
+		isUnderRivet := strings.HasPrefix(wtClean, rivetDir+string(filepath.Separator)) &&
 			(strings.HasPrefix(filepath.Base(wtClean), prefix) || strings.HasPrefix(filepath.Base(wtClean), legacyPrefix))
 
-		if !isRoot && !isUnderSolo {
+		if !isRoot && !isUnderRivet {
 			continue
 		}
 
@@ -274,11 +274,11 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 		}
 	}
 
-	soloDir := expandPath(soloWorktreesDir)
-	if err := os.MkdirAll(soloDir, 0755); err != nil {
+	rivetDir := expandPath(rivetWorktreesDir)
+	if err := os.MkdirAll(rivetDir, 0755); err != nil {
 		return "", err
 	}
-	worktreePath := filepath.Join(soloDir, worktreeDir)
+	worktreePath := filepath.Join(rivetDir, worktreeDir)
 
 	hasCommit, _ := repoHasCommit(projectPath)
 	if !hasCommit {
@@ -329,9 +329,9 @@ func (f *OSFilesystem) DeleteWorktree(projectPath, worktreePath string) error {
 		return fmt.Errorf("cannot delete the project root worktree")
 	}
 
-	soloDir := expandPath(soloWorktreesDir)
-	if !strings.HasPrefix(cleanPath, soloDir+string(filepath.Separator)) {
-		return fmt.Errorf("can only delete worktrees under %s", soloWorktreesDir)
+	rivetDir := expandPath(rivetWorktreesDir)
+	if !strings.HasPrefix(cleanPath, rivetDir+string(filepath.Separator)) {
+		return fmt.Errorf("can only delete worktrees under %s", rivetWorktreesDir)
 	}
 
 	if !isRegisteredWorktree(projectPath, cleanPath) {

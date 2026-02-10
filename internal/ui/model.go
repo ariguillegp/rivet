@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 
-	"github.com/ariguillegp/solo/internal/ports"
+	"github.com/ariguillegp/rivet/internal/ports"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"

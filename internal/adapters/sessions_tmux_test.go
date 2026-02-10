@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 )
 
 func TestKillSessionIgnoresNoServerRunning(t *testing.T) {

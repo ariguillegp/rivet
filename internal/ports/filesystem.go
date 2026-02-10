@@ -1,6 +1,6 @@
 package ports
 
-import "github.com/ariguillegp/solo/internal/core"
+import "github.com/ariguillegp/rivet/internal/core"
 
 type Filesystem interface {
 	ScanDirs(roots []string, maxDepth int) ([]core.DirEntry, error)

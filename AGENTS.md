@@ -1,11 +1,11 @@
-# solo AGENTS
+# rivet AGENTS
 
 Use progressive guidance: start here for orientation, then check `internal/*/AGENTS.md` for details.
 
 ## Entry Points
-- CLI/TUI entry: `cmd/solo/main.go`
-- Interactive mode: `solo [directories...]`
-- Non-interactive: `solo --project NAME --worktree BRANCH --tool TOOL [--detach]`
+- CLI/TUI entry: `cmd/rivet/main.go`
+- Interactive mode: `rivet [directories...]`
+- Non-interactive: `rivet --project NAME --worktree BRANCH --tool TOOL [--detach]`
 
 ## Architecture Map
 - `internal/core`: pure state machine, effects, filtering logic

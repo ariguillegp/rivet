@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ariguillegp/solo/internal/core"
+	"github.com/ariguillegp/rivet/internal/core"
 )
 
 type TmuxSession struct{}
@@ -93,7 +93,7 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 		if name == "" {
 			continue
 		}
-		if name == "solo-launcher" {
+		if name == "rivet-launcher" {
 			continue
 		}
 		sessionPath := ""

@@ -7,9 +7,9 @@ validate:
 
 deploy:
 	mkdir -p ~/.local/bin
-	go build -o ~/.local/bin/solo ./cmd/solo
+	go build -o ~/.local/bin/rivet ./cmd/rivet
 
 install:
 	mkdir -p ~/Projects
-	mkdir -p ~/.solo/worktrees
+	mkdir -p ~/.rivet/worktrees
 	$(MAKE) deploy
