@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/ariguillegp/solo/internal/core"
-	"github.com/google/uuid"
 )
 
 type OSFilesystem struct{}
@@ -234,9 +233,6 @@ func (f *OSFilesystem) ListWorktrees(projectPath string) (core.WorktreeListing, 
 		}
 
 		wt.Name = filepath.Base(wt.Path)
-		if wt.Branch == "" {
-			wt.Branch = wt.Name
-		}
 		filtered = append(filtered, wt)
 	}
 
@@ -256,8 +252,23 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 
 	projectName := filepath.Base(projectPath)
 	sanitizedBranch := core.SanitizeWorktreeName(cleanBranch)
-	shortUUID := uuid.New().String()[:8]
-	worktreeDir := fmt.Sprintf("%s--%s--%s", projectName, sanitizedBranch, shortUUID)
+	if sanitizedBranch == "" {
+		return "", fmt.Errorf("branch name cannot be empty")
+	}
+	worktreeDir := fmt.Sprintf("%s--%s", projectName, sanitizedBranch)
+
+	listing, err := f.ListWorktrees(projectPath)
+	if err != nil {
+		return "", err
+	}
+	for _, wt := range listing.Worktrees {
+		if strings.TrimSpace(wt.Branch) == cleanBranch {
+			return "", fmt.Errorf("worktree already exists for branch %s", cleanBranch)
+		}
+		if sanitizedBranch != "" && core.SanitizeWorktreeName(wt.Branch) == sanitizedBranch {
+			return "", fmt.Errorf("worktree already exists for branch %s", cleanBranch)
+		}
+	}
 
 	soloDir := expandPath(soloWorktreesDir)
 	if err := os.MkdirAll(soloDir, 0755); err != nil {

@@ -39,9 +39,9 @@ func TestCreateWorktreeCreatesUnderSoloDir(t *testing.T) {
 
 	projectName := filepath.Base(projectPath)
 	wtName := filepath.Base(worktreePath)
-	expectedPrefix := projectName + "--feature-test--"
-	if !strings.HasPrefix(wtName, expectedPrefix) {
-		t.Fatalf("expected worktree name to start with %q, got %q", expectedPrefix, wtName)
+	expectedName := projectName + "--feature-test"
+	if wtName != expectedName {
+		t.Fatalf("expected worktree name %q, got %q", expectedName, wtName)
 	}
 
 	if _, err := os.Stat(worktreePath); err != nil {
@@ -51,6 +51,28 @@ func TestCreateWorktreeCreatesUnderSoloDir(t *testing.T) {
 	t.Cleanup(func() {
 		_ = os.RemoveAll(worktreePath)
 	})
+}
+
+func TestCreateWorktreeRejectsDuplicateBranch(t *testing.T) {
+	projectPath := t.TempDir()
+	initRepo(t, projectPath)
+
+	fs := &OSFilesystem{}
+	worktreePath, err := fs.CreateWorktree(projectPath, "feature/test")
+	if err != nil {
+		t.Fatalf("unexpected error creating worktree: %v", err)
+	}
+	defer func() {
+		_ = fs.DeleteWorktree(projectPath, worktreePath)
+	}()
+
+	_, err = fs.CreateWorktree(projectPath, "feature test")
+	if err == nil {
+		t.Fatal("expected error when worktree already exists for branch")
+	}
+	if !strings.Contains(err.Error(), "worktree already exists") {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
 
 func TestListWorktreesWarnsWhenNoGitRepo(t *testing.T) {
@@ -284,7 +306,7 @@ func TestDeleteWorktreeRejectsUnregisteredWorktree(t *testing.T) {
 	home, _ := os.UserHomeDir()
 	soloDir := filepath.Join(home, ".solo", "worktrees")
 	projectName := filepath.Base(projectPath)
-	worktreePath := filepath.Join(soloDir, projectName+"--fake-branch--deadbeef")
+	worktreePath := filepath.Join(soloDir, projectName+"--fake-branch")
 
 	if err := os.MkdirAll(worktreePath, 0755); err != nil {
 		t.Fatalf("unexpected error creating unregistered worktree: %v", err)
