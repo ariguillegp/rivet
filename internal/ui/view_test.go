@@ -266,7 +266,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 		{
 			name:      "tool starting",
 			mode:      core.ModeToolStarting,
-			helpParts: []string{"?", "help", "esc", "back"},
+			helpParts: []string{"esc", "back"},
 		},
 		{
 			name: "sessions",
