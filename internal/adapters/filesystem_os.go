@@ -292,7 +292,7 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 	cmd := gitCommand(projectPath, "worktree", "add", "-b", cleanBranch, worktreePath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		cmd = gitCommand(projectPath, "worktree", "add", worktreePath, cleanBranch)
+		cmd = gitCommand(projectPath, "worktree", "add", "--orphan", "-b", cleanBranch, worktreePath)
 		output2, err2 := cmd.CombinedOutput()
 		if err2 != nil {
 			return "", fmt.Errorf("%s: %s", err2, string(output2))
