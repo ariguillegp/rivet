@@ -244,3 +244,36 @@ type errTest string
 func (e errTest) Error() string {
 	return string(e)
 }
+
+func TestWorktreeUpKeyMovesBySingleStep(t *testing.T) {
+	m := Model{
+		Mode: ModeWorktree,
+		FilteredWT: []Worktree{
+			{Path: "/projects/demo/main", Branch: "main"},
+			{Path: "/projects/demo/feature", Branch: "feature"},
+		},
+		WorktreeIdx: 1,
+	}
+
+	updated, effects, handled := UpdateKey(m, KeyUp)
+	if !handled {
+		t.Fatal("expected up key to be handled")
+	}
+	if updated.WorktreeIdx != 0 {
+		t.Fatalf("expected worktree index to decrement to 0, got %d", updated.WorktreeIdx)
+	}
+	if len(effects) != 0 {
+		t.Fatalf("expected no effects, got %d", len(effects))
+	}
+}
+
+func TestSelectedWorktreeIgnoresNegativeIndex(t *testing.T) {
+	m := Model{
+		FilteredWT:  []Worktree{{Path: "/projects/demo/main", Branch: "main"}},
+		WorktreeIdx: -1,
+	}
+
+	if _, ok := m.SelectedWorktree(); ok {
+		t.Fatal("expected negative index to return no selected worktree")
+	}
+}

@@ -74,7 +74,7 @@ func (m Model) SelectedDir() (DirEntry, bool) {
 }
 
 func (m Model) SelectedWorktree() (Worktree, bool) {
-	if len(m.FilteredWT) == 0 || m.WorktreeIdx >= len(m.FilteredWT) {
+	if len(m.FilteredWT) == 0 || m.WorktreeIdx < 0 || m.WorktreeIdx >= len(m.FilteredWT) {
 		return Worktree{}, false
 	}
 	return m.FilteredWT[m.WorktreeIdx], true
