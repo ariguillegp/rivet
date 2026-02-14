@@ -93,10 +93,21 @@ func newSessionTable(styles Styles) table.Model {
 	return t
 }
 
-func newSessionTableStyles(_ Styles) table.Styles {
+func newSessionTableStyles(styles Styles) table.Styles {
 	ts := table.DefaultStyles()
+	normalFg := styles.Suggestion.GetForeground()
+	selectedFg := styles.SelectedSuggestion.GetForeground()
+
+	if normalFg != nil {
+		ts.Header = ts.Header.Foreground(normalFg)
+		ts.Cell = ts.Cell.Foreground(normalFg)
+	}
+
 	ts.Header = ts.Header.Bold(true)
-	ts.Selected = ts.Selected.Bold(false)
+	ts.Selected = ts.Selected.UnsetBackground().Bold(true)
+	if selectedFg != nil {
+		ts.Selected = ts.Selected.Foreground(selectedFg)
+	}
 	return ts
 }
 
