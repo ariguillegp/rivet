@@ -11,6 +11,10 @@ import (
 type keyMap struct {
 	Up       key.Binding
 	Down     key.Binding
+	PageUp   key.Binding
+	PageDown key.Binding
+	Top      key.Binding
+	Bottom   key.Binding
 	Select   key.Binding
 	Delete   key.Binding
 	Sessions key.Binding
@@ -23,8 +27,12 @@ type keyMap struct {
 
 func newKeyMap() keyMap {
 	return keyMap{
-		Up:       key.NewBinding(key.WithKeys("up", "ctrl+k"), key.WithHelp("↑/ctrl+k", "up")),
-		Down:     key.NewBinding(key.WithKeys("down", "ctrl+j"), key.WithHelp("↓/ctrl+j", "down")),
+		Up:       key.NewBinding(key.WithKeys("up", "k", "ctrl+k"), key.WithHelp("↑/k", "up")),
+		Down:     key.NewBinding(key.WithKeys("down", "j", "ctrl+j"), key.WithHelp("↓/j", "down")),
+		PageUp:   key.NewBinding(key.WithKeys("pgup"), key.WithHelp("pgup", "page up")),
+		PageDown: key.NewBinding(key.WithKeys("pgdown"), key.WithHelp("pgdn", "page down")),
+		Top:      key.NewBinding(key.WithKeys("g", "home"), key.WithHelp("g", "top")),
+		Bottom:   key.NewBinding(key.WithKeys("G", "end"), key.WithHelp("G", "bottom")),
 		Select:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 		Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete")),
 		Sessions: key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("ctrl+s", "sessions")),

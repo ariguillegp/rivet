@@ -51,7 +51,7 @@ func (m Model) View() string {
 		path := m.styles.Path.Render("  " + m.displayPath(m.core.ProjectDeletePath))
 		warning := m.styles.Body.Render("This action cannot be undone.")
 		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
-		content = prompt + "\n\n" + path + "\n\n" + warning + "\n\n" + actions
+		content = m.renderViewportContent(prompt + "\n\n" + path + "\n\n" + warning + "\n\n" + actions)
 
 	case core.ModeWorktree:
 		header = m.styles.Title.Render("Step 2: Select Workspace")
@@ -83,7 +83,7 @@ func (m Model) View() string {
 		prompt := m.styles.Body.Render("This will delete the following workspace:")
 		warning := m.styles.Body.Render("This action cannot be undone.")
 		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
-		content = prompt + "\n\n" + label + "\n" + path + "\n\n" + warning + "\n\n" + actions
+		content = m.renderViewportContent(prompt + "\n\n" + label + "\n" + path + "\n\n" + warning + "\n\n" + actions)
 
 	case core.ModeTool:
 		header = m.styles.Title.Render("Step 3: Select Tool")
@@ -135,7 +135,8 @@ func (m Model) View() string {
 		helpLine = m.shortHelpView()
 
 	case core.ModeError:
-		content = m.styles.Error.Render(fmt.Sprintf("Error: %v", m.core.Err))
+		errContent := m.styles.Error.Render(fmt.Sprintf("Error: %v", m.core.Err))
+		content = m.renderViewportContent(errContent)
 		helpLine = m.shortHelpView()
 	}
 
@@ -151,9 +152,7 @@ func (m Model) View() string {
 		content += "\n\n" + helpLine
 	}
 
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
-
+	box := m.renderModalBox(content)
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
@@ -254,9 +253,9 @@ func (m Model) renderBreadcrumbItem(label, value string) string {
 
 func (m Model) renderHelpModal() string {
 	header := m.styles.Title.Render("Help Menu")
-	content := header + "\n\n" + m.fullHelpView() + "\n\n" + m.styles.Help.Render("Press ? or esc to close")
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
+	body := m.fullHelpView() + "\n\n" + m.styles.Help.Render("Press ? or esc to close")
+	content := header + "\n\n" + m.renderViewportContent(body)
+	box := m.renderModalBox(content)
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
@@ -278,10 +277,61 @@ func (m Model) renderThemePicker() string {
 	help := m.help.ShortHelpView([]key.Binding{m.keymap.binding(m.keymap.Select, "apply"), m.keymap.binding(m.keymap.Back, "cancel")})
 	content = header + "\n\n" + content + "\n\n" + help
 
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
+	box := m.renderModalBox(content)
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m Model) modalBoxDimensions() (int, int) {
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	boxWidth := boxStyle.GetWidth()
+	if boxWidth <= 0 {
+		boxWidth = minBoxWidth
+	}
+	if m.width > 0 && boxWidth > m.width {
+		boxWidth = m.width
+	}
+	if m.height <= 0 {
+		return boxWidth, 0
+	}
+	boxHeight := m.height * 3 / 4
+	if boxHeight < 8 {
+		boxHeight = m.height
+	}
+	if boxHeight > m.height-2 {
+		boxHeight = m.height - 2
+	}
+	if boxHeight < 1 {
+		boxHeight = 1
+	}
+	return boxWidth, boxHeight
+}
+
+func (m Model) renderModalBox(content string) string {
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	_, boxHeight := m.modalBoxDimensions()
+	if boxHeight > 0 {
+		boxStyle = boxStyle.Height(boxHeight)
+	}
+	return boxStyle.Render(content)
+}
+
+func (m Model) renderViewportContent(content string) string {
+	vp := m.viewport
+	if vp.Width <= 0 || vp.Height <= 0 {
+		boxWidth, boxHeight := m.modalBoxDimensions()
+		boxStyle := m.styles.BoxWithWidth(m.width)
+		vp.Width = boxWidth - boxStyle.GetHorizontalFrameSize()
+		vp.Height = boxHeight - boxStyle.GetVerticalFrameSize()
+		if vp.Width < 1 {
+			vp.Width = 1
+		}
+		if vp.Height < 1 {
+			vp.Height = 1
+		}
+	}
+	vp.SetContent(content)
+	return vp.View()
 }
