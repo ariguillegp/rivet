@@ -540,3 +540,73 @@ func TestToolStartingProgressStaysBelowOneWhileWaitingForOpen(t *testing.T) {
 		t.Fatalf("expected progress to stay below complete while opening session, got %f", progress)
 	}
 }
+
+func TestViewSessionsUsesTableOnWideTerminal(t *testing.T) {
+	m := newTestModel()
+	m.height = 25
+	m.width = 140
+	m.core.Mode = core.ModeSessions
+	m.core.Sessions = []core.SessionInfo{{
+		Name:       "alpha",
+		DirPath:    "/home/demo/Projects/rivet/rbac-sentinel",
+		Project:    "rivet",
+		Branch:     "rbac-sentinel",
+		Tool:       "codex",
+		LastActive: time.Unix(1735689600, 0),
+	}}
+	m.homeDir = "/home/demo"
+	m.core.FilteredSessions = m.core.Sessions
+	m.syncSessionList()
+
+	view := stripANSI(m.View())
+	for _, part := range []string{"Project", "Branch", "Tool", "Last active", "rivet", "rbac-sentinel"} {
+		if !strings.Contains(view, part) {
+			t.Fatalf("expected wide sessions view to contain %q, got %q", part, view)
+		}
+	}
+}
+
+func TestViewSessionsUsesCompactListOnNarrowTerminal(t *testing.T) {
+	m := newTestModel()
+	m.height = 25
+	m.width = 80
+	m.core.Mode = core.ModeSessions
+	m.core.Sessions = []core.SessionInfo{{Name: "alpha", DirPath: "/repo/project/feature-a", Tool: "codex"}}
+	m.core.FilteredSessions = m.core.Sessions
+	m.syncSessionList()
+
+	view := stripANSI(m.View())
+	if strings.Contains(view, "Branch") {
+		t.Fatalf("expected narrow sessions view to omit table headers, got %q", view)
+	}
+	if !strings.Contains(view, "feature-a - codex") {
+		t.Fatalf("expected narrow sessions view to include session label, got %q", view)
+	}
+}
+
+func TestViewSessionsTableShowsSelectedRowOutsideInitialViewport(t *testing.T) {
+	m := newTestModel()
+	m.height = 25
+	m.width = 140
+	m.core.Mode = core.ModeSessions
+
+	sessions := make([]core.SessionInfo, 0, 13)
+	for i := 0; i < 13; i++ {
+		sessions = append(sessions, core.SessionInfo{
+			Name:    fmt.Sprintf("session-%02d", i),
+			DirPath: fmt.Sprintf("/repo/rivet/branch-%02d", i),
+			Project: "rivet",
+			Branch:  fmt.Sprintf("branch-%02d", i),
+			Tool:    "codex",
+		})
+	}
+	m.core.Sessions = sessions
+	m.core.FilteredSessions = sessions
+	m.core.SessionIdx = 12
+	m.syncSessionList()
+
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "branch-12") {
+		t.Fatalf("expected selected row to be visible in table viewport, got %q", view)
+	}
+}

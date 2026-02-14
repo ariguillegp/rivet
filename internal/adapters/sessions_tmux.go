@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ariguillegp/rivet/internal/core"
 )
@@ -68,7 +70,7 @@ func (t *TmuxSession) KillSession(spec core.SessionSpec) error {
 }
 
 func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
-	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}\t#{session_path}")
+	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}\t#{session_path}\t#{session_last_attached}")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(output), "no server running") {
@@ -88,7 +90,7 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 		if line == "" {
 			continue
 		}
-		parts := strings.SplitN(line, "\t", 2)
+		parts := strings.SplitN(line, "\t", 3)
 		name := strings.TrimSpace(parts[0])
 		if name == "" {
 			continue
@@ -100,6 +102,7 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 		if len(parts) > 1 {
 			sessionPath = strings.TrimSpace(parts[1])
 		}
+		lastActive := parseTmuxUnixTime(parts, 2)
 		info, ok := parseSessionName(name)
 		if ok {
 			info.Name = name
@@ -109,10 +112,77 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 		} else {
 			info = core.SessionInfo{Name: name, DirPath: sessionPath}
 		}
+		info.LastActive = lastActive
+		projectName, branch := sessionMetadata(sessionPath)
+		if strings.TrimSpace(projectName) != "" {
+			info.Project = projectName
+		}
+		if strings.TrimSpace(branch) != "" {
+			info.Branch = branch
+		}
 		sessions = append(sessions, info)
 	}
 
 	return sessions, nil
+}
+
+func parseTmuxUnixTime(parts []string, idx int) time.Time {
+	if len(parts) <= idx {
+		return time.Time{}
+	}
+	unixText := strings.TrimSpace(parts[idx])
+	if unixText == "" || unixText == "0" {
+		return time.Time{}
+	}
+	unixValue, err := strconv.ParseInt(unixText, 10, 64)
+	if err != nil || unixValue <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(unixValue, 0)
+}
+
+func sessionMetadata(dirPath string) (projectName string, branch string) {
+	dirPath = strings.TrimSpace(dirPath)
+	if dirPath == "" {
+		return "", ""
+	}
+	projectName = sessionProjectName(dirPath)
+	branch = gitOutput("-C", dirPath, "branch", "--show-current")
+	return strings.TrimSpace(projectName), strings.TrimSpace(branch)
+}
+
+func sessionProjectName(dirPath string) string {
+	commonDir := gitOutput("-C", dirPath, "rev-parse", "--git-common-dir")
+	if commonDir != "" {
+		if !filepath.IsAbs(commonDir) {
+			commonDir = filepath.Clean(filepath.Join(dirPath, commonDir))
+		}
+		if strings.EqualFold(filepath.Base(commonDir), ".git") {
+			project := strings.TrimSpace(filepath.Base(filepath.Dir(commonDir)))
+			if project != "" && project != "." && project != string(filepath.Separator) {
+				return project
+			}
+		}
+	}
+
+	topLevel := gitOutput("-C", dirPath, "rev-parse", "--show-toplevel")
+	if topLevel == "" {
+		topLevel = dirPath
+	}
+	name := strings.TrimSpace(filepath.Base(filepath.Clean(topLevel)))
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		return ""
+	}
+	return name
+}
+
+func gitOutput(args ...string) string {
+	cmd := exec.Command("git", args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func (t *TmuxSession) AttachSession(name string) error {

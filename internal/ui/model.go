@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -30,6 +31,7 @@ type Model struct {
 	worktreeList         listmodel.Model
 	toolList             listmodel.Model
 	sessionList          listmodel.Model
+	sessionTable         table.Model
 	themeList            listmodel.Model
 	spinner              spinner.Model
 	progress             progress.Model
@@ -90,6 +92,7 @@ func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Mod
 		worktreeList:       newSuggestionList(styles),
 		toolList:           newSuggestionList(styles),
 		sessionList:        newSuggestionList(styles),
+		sessionTable:       newSessionTable(styles),
 		themeList:          newSuggestionList(styles),
 		spinner:            sp,
 		progress:           pr,
@@ -583,6 +586,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Err:      msg.err,
 		})
 		m.core = coreModel
+		m.syncLists()
 		cmd := m.runEffects(effects)
 		return m, cmd
 

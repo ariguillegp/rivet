@@ -20,9 +20,12 @@ type SessionSpec struct {
 }
 
 type SessionInfo struct {
-	Name    string
-	DirPath string
-	Tool    string
+	Name       string
+	DirPath    string
+	Project    string
+	Branch     string
+	Tool       string
+	LastActive time.Time
 }
 
 type Worktree struct {

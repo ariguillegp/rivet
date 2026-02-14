@@ -3,11 +3,14 @@ package ui
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ariguillegp/rivet/internal/core"
 	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -74,6 +77,77 @@ func (d suggestionDelegate) Render(w io.Writer, m listmodel.Model, index int, it
 	_, _ = fmt.Fprint(w, prefix+strings.Join(parts, " "))
 }
 
+const compactSessionMinWidth = 95
+
+func newSessionTable(styles Styles) table.Model {
+	columns := []table.Column{
+		{Title: "Project", Width: 40},
+		{Title: "Branch", Width: 22},
+		{Title: "Tool", Width: 12},
+		{Title: "Last active", Width: 16},
+	}
+	t := table.New(table.WithColumns(columns), table.WithRows(nil), table.WithFocused(true), table.WithHeight(defaultListSuggestions))
+	t.SetStyles(newSessionTableStyles(styles))
+	t.KeyMap.LineUp = key.NewBinding(key.WithKeys("up", "ctrl+k"))
+	t.KeyMap.LineDown = key.NewBinding(key.WithKeys("down", "ctrl+j"))
+	return t
+}
+
+func newSessionTableStyles(styles Styles) table.Styles {
+	ts := table.DefaultStyles()
+	headerFg := styles.Body.GetForeground()
+	selectedFg := styles.SelectedSuggestion.GetForeground()
+
+	ts.Header = ts.Header.Bold(true)
+	if headerFg != nil {
+		ts.Header = ts.Header.Foreground(headerFg)
+	}
+
+	// Selected row should only change emphasis/color and not add extra row padding.
+	ts.Selected = styles.SelectedSuggestion.Copy()
+	if selectedFg != nil {
+		ts.Selected = ts.Selected.Foreground(selectedFg)
+	}
+	return ts
+}
+
+func (m Model) sessionListIsCompact() bool {
+	return m.width > 0 && m.width < compactSessionMinWidth
+}
+
+func sessionLastActiveLabel(lastActive time.Time) string {
+	if lastActive.IsZero() {
+		return "—"
+	}
+	return lastActive.Local().Format("2006-01-02 15:04")
+}
+
+func (m Model) sessionProjectLabel(session core.SessionInfo) string {
+	project := strings.TrimSpace(session.Project)
+	if project != "" {
+		return project
+	}
+	if session.DirPath == "" {
+		return ""
+	}
+	projectPath := filepath.Dir(session.DirPath)
+	if projectPath == "." || projectPath == string(filepath.Separator) {
+		return ""
+	}
+	return filepath.Base(projectPath)
+}
+
+func (m Model) sessionBranchLabel(session core.SessionInfo) string {
+	if branch := strings.TrimSpace(session.Branch); branch != "" {
+		return branch
+	}
+	name := core.SessionWorktreeName(session.DirPath)
+	if name != "" {
+		return name
+	}
+	return filepath.Base(session.DirPath)
+}
+
 func newSuggestionList(styles Styles) listmodel.Model {
 	l := listmodel.New([]listmodel.Item{}, suggestionDelegate{styles: styles}, 0, defaultListSuggestions)
 	l.SetShowTitle(false)
@@ -112,6 +186,14 @@ func listHeight(limit, total int) int {
 		return total
 	}
 	return limit
+}
+
+func tableHeight(limit, total int) int {
+	height := listHeight(limit, total)
+	if height > 0 {
+		return height + 1
+	}
+	return 0
 }
 
 func visibleListWindow(total, selectedIdx, maxItems int) (start, end int) {
@@ -171,6 +253,11 @@ func (m *Model) applyListStyles() {
 		l.SetDelegate(suggestionDelegate{styles: m.styles})
 		l.SetHeight(listHeight(m.listLimit(), len(l.Items())))
 	}
+	m.sessionTable.SetStyles(newSessionTableStyles(m.styles))
+	m.sessionTable.SetHeight(tableHeight(m.listLimit(), len(m.sessionTable.Rows())))
+	if m.width > 0 {
+		m.sessionTable.SetWidth(max(0, m.width-8))
+	}
 }
 
 func (m *Model) syncProjectList() {
@@ -210,17 +297,48 @@ func (m *Model) syncToolList() {
 }
 
 func (m *Model) syncSessionList() {
-	rows := make([]suggestionItem, 0, len(m.core.FilteredSessions))
+	compactRows := make([]suggestionItem, 0, len(m.core.FilteredSessions))
+	tableRows := make([]table.Row, 0, len(m.core.FilteredSessions))
 	for _, session := range m.core.FilteredSessions {
 		label := core.SessionDisplayLabel(session)
 		if label == "" {
 			label = m.displayPath(session.DirPath)
 		}
-		rows = append(rows, suggestionItem{primary: label})
+		compactRows = append(compactRows, suggestionItem{primary: label})
+		tableRows = append(tableRows, table.Row{
+			m.sessionProjectLabel(session),
+			m.sessionBranchLabel(session),
+			session.Tool,
+			sessionLastActiveLabel(session.LastActive),
+		})
 	}
-	m.sessionList.SetItems(toItems(rows))
-	m.sessionList.SetHeight(listHeight(m.listLimit(), len(rows)))
+	m.sessionList.SetItems(toItems(compactRows))
+	m.sessionList.SetHeight(listHeight(m.listLimit(), len(compactRows)))
 	m.sessionList.Select(m.core.SessionIdx)
+	m.sessionTable.SetRows(tableRows)
+	m.sessionTable.SetHeight(tableHeight(m.listLimit(), len(tableRows)))
+	m.syncSessionTableCursor(m.core.SessionIdx)
+}
+
+func (m *Model) syncSessionTableCursor(idx int) {
+	total := len(m.sessionTable.Rows())
+	if total == 0 {
+		m.sessionTable.SetCursor(0)
+		return
+	}
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= total {
+		idx = total - 1
+	}
+
+	// Bubble's table keeps viewport offset when SetCursor is used directly.
+	// Re-anchor at top first, then move to the target row so it's visible.
+	m.sessionTable.GotoTop()
+	if idx > 0 {
+		m.sessionTable.MoveDown(idx)
+	}
 }
 
 func (m *Model) syncThemeList() {
