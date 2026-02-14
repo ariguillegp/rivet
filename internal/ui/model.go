@@ -17,6 +17,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -53,6 +54,8 @@ type Model struct {
 	showThemePicker      bool
 	homeDir              string
 	help                 help.Model
+	viewport             viewport.Model
+	viewportContentSig   string
 	keymap               keyMap
 }
 
@@ -81,6 +84,8 @@ func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Mod
 	styles := NewStyles(allThemes[0])
 	h := newHelpModel()
 	km := newKeyMap()
+	vp := viewport.New(0, 0)
+
 	m := Model{
 		core:               core.NewModel(roots),
 		input:              ti,
@@ -106,6 +111,7 @@ func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Mod
 		themePickerPrevIdx: 0,
 		homeDir:            homeDir,
 		help:               h,
+		viewport:           vp,
 		keymap:             km,
 	}
 	m.syncProgressTheme(allThemes[0])
@@ -133,6 +139,79 @@ func (m *Model) restoreInputFocus() {
 	case core.ModeSessions:
 		m.sessionInput.Focus()
 	}
+}
+
+func (m Model) isViewportActive() bool {
+	if m.showHelp {
+		return true
+	}
+	switch m.core.Mode {
+	case core.ModeError, core.ModeProjectDeleteConfirm, core.ModeWorktreeDeleteConfirm:
+		return true
+	default:
+		return false
+	}
+}
+
+func (m *Model) updateViewportSize() {
+	boxWidth, boxHeight := m.modalBoxDimensions()
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	innerWidth := boxWidth - boxStyle.GetHorizontalFrameSize()
+	innerHeight := boxHeight - boxStyle.GetVerticalFrameSize()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+	m.viewport.Width = innerWidth
+	m.viewport.Height = innerHeight
+}
+
+func (m *Model) updateViewport(msg tea.KeyMsg) tea.Cmd {
+	m.syncViewportContent()
+
+	switch {
+	case key.Matches(msg, m.keymap.Down):
+		m.viewport.LineDown(1)
+		return nil
+	case key.Matches(msg, m.keymap.Up):
+		m.viewport.LineUp(1)
+		return nil
+	case key.Matches(msg, m.keymap.PageDown):
+		m.viewport.PageDown()
+		return nil
+	case key.Matches(msg, m.keymap.PageUp):
+		m.viewport.PageUp()
+		return nil
+	case key.Matches(msg, m.keymap.Top):
+		m.viewport.GotoTop()
+		return nil
+	case key.Matches(msg, m.keymap.Bottom):
+		m.viewport.GotoBottom()
+		return nil
+	default:
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return cmd
+	}
+}
+
+func (m *Model) syncViewportContent() {
+	content, signature, ok := m.currentViewportContent()
+	if !ok {
+		if m.viewportContentSig != "" {
+			m.viewport.GotoTop()
+			m.viewportContentSig = ""
+		}
+		return
+	}
+	m.updateViewportSize()
+	m.viewport.SetContent(content)
+	if signature != m.viewportContentSig {
+		m.viewport.GotoTop()
+	}
+	m.viewportContentSig = signature
 }
 
 func (m *Model) openThemePicker() {
@@ -278,11 +357,16 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if !m.showHelp && !m.isViewportActive() && m.viewportContentSig != "" {
+		m.viewportContentSig = ""
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		m.applyListStyles()
+		m.updateViewportSize()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -295,19 +379,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.keymap.Back, m.keymap.Toggle):
 				m.showHelp = false
-				switch m.core.Mode {
-				case core.ModeBrowsing:
-					m.input.Focus()
-				case core.ModeWorktree:
-					m.worktreeInput.Focus()
-				case core.ModeTool:
-					m.toolInput.Focus()
-				case core.ModeSessions:
-					m.sessionInput.Focus()
-				}
+				m.restoreInputFocus()
 				return m, nil
 			case key.Matches(msg, m.keymap.Quit):
 				return m, tea.Quit
+			case key.Matches(msg, m.keymap.Up, m.keymap.Down, m.keymap.PageUp, m.keymap.PageDown, m.keymap.Top, m.keymap.Bottom):
+				return m, m.updateViewport(msg)
 			}
 			return m, nil
 		}
@@ -345,6 +422,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keymap.Theme) && m.core.Mode != core.ModeLoading {
 			m.openThemePicker()
 			return m, nil
+		}
+
+		if m.isViewportActive() && key.Matches(msg, m.keymap.Up, m.keymap.Down, m.keymap.PageUp, m.keymap.PageDown, m.keymap.Top, m.keymap.Bottom) {
+			return m, m.updateViewport(msg)
 		}
 
 		prevMode := m.core.Mode

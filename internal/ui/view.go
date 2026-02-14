@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"hash/fnv"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,11 +48,9 @@ func (m Model) View() string {
 	case core.ModeProjectDeleteConfirm:
 		header = m.styles.Title.Render("⚠ Delete Project")
 		breadcrumb = m.renderBreadcrumb()
-		prompt := m.styles.Body.Render("This will delete the project and all workspaces:")
-		path := m.styles.Path.Render("  " + m.displayPath(m.core.ProjectDeletePath))
-		warning := m.styles.Body.Render("This action cannot be undone.")
-		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
-		content = prompt + "\n\n" + path + "\n\n" + warning + "\n\n" + actions
+		if viewportContent, ok := m.modalViewportContent(); ok {
+			content = m.renderViewportContent(viewportContent)
+		}
 
 	case core.ModeWorktree:
 		header = m.styles.Title.Render("Step 2: Select Workspace")
@@ -74,16 +73,9 @@ func (m Model) View() string {
 	case core.ModeWorktreeDeleteConfirm:
 		header = m.styles.Title.Render("⚠ Delete Workspace")
 		breadcrumb = m.renderBreadcrumb()
-		labelText := m.worktreeBreadcrumbLabel()
-		if labelText == "" {
-			labelText = m.displayPath(m.core.WorktreeDeletePath)
+		if viewportContent, ok := m.modalViewportContent(); ok {
+			content = m.renderViewportContent(viewportContent)
 		}
-		label := m.styles.Body.Render("  " + labelText)
-		path := m.styles.Path.Render("  " + m.displayPath(m.core.WorktreeDeletePath))
-		prompt := m.styles.Body.Render("This will delete the following workspace:")
-		warning := m.styles.Body.Render("This action cannot be undone.")
-		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
-		content = prompt + "\n\n" + label + "\n" + path + "\n\n" + warning + "\n\n" + actions
 
 	case core.ModeTool:
 		header = m.styles.Title.Render("Step 3: Select Tool")
@@ -135,7 +127,9 @@ func (m Model) View() string {
 		helpLine = m.shortHelpView()
 
 	case core.ModeError:
-		content = m.styles.Error.Render(fmt.Sprintf("Error: %v", m.core.Err))
+		if viewportContent, ok := m.modalViewportContent(); ok {
+			content = m.renderViewportContent(viewportContent)
+		}
 		helpLine = m.shortHelpView()
 	}
 
@@ -151,9 +145,7 @@ func (m Model) View() string {
 		content += "\n\n" + helpLine
 	}
 
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
-
+	box := m.renderModalBox(content, m.isViewportActive())
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
@@ -254,13 +246,66 @@ func (m Model) renderBreadcrumbItem(label, value string) string {
 
 func (m Model) renderHelpModal() string {
 	header := m.styles.Title.Render("Help Menu")
-	content := header + "\n\n" + m.fullHelpView() + "\n\n" + m.styles.Help.Render("Press ? or esc to close")
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
+	body := m.helpModalContent()
+	content := header + "\n\n" + m.renderViewportContent(body)
+	box := m.renderModalBox(content, false)
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m Model) helpModalContent() string {
+	return m.fullHelpView() + "\n\n" + m.styles.Help.Render("Press ? or esc to close")
+}
+
+func (m Model) viewportContentSignature(content string) string {
+	owner := fmt.Sprintf("mode:%d", m.core.Mode)
+	if m.showHelp {
+		owner = "help"
+	}
+	hash := fnv.New64a()
+	_, _ = hash.Write([]byte(content))
+	return fmt.Sprintf("%s:%x", owner, hash.Sum64())
+}
+
+func (m Model) currentViewportContent() (string, string, bool) {
+	if m.showHelp {
+		content := m.helpModalContent()
+		return content, m.viewportContentSignature(content), true
+	}
+
+	content, ok := m.modalViewportContent()
+	if !ok {
+		return "", "", false
+	}
+	return content, m.viewportContentSignature(content), true
+}
+
+func (m Model) modalViewportContent() (string, bool) {
+	switch m.core.Mode {
+	case core.ModeProjectDeleteConfirm:
+		prompt := m.styles.Body.Render("This will delete the project and all workspaces:")
+		path := m.styles.Path.Render("  " + m.displayPath(m.core.ProjectDeletePath))
+		warning := m.styles.Body.Render("This action cannot be undone.")
+		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
+		return prompt + "\n\n" + path + "\n\n" + warning + "\n\n" + actions, true
+	case core.ModeWorktreeDeleteConfirm:
+		labelText := m.worktreeBreadcrumbLabel()
+		if labelText == "" {
+			labelText = m.displayPath(m.core.WorktreeDeletePath)
+		}
+		label := m.styles.Body.Render("  " + labelText)
+		path := m.styles.Path.Render("  " + m.displayPath(m.core.WorktreeDeletePath))
+		prompt := m.styles.Body.Render("This will delete the following workspace:")
+		warning := m.styles.Body.Render("This action cannot be undone.")
+		actions := m.styles.Key.Render("enter") + " " + m.styles.DestructiveAction.Render("delete") + "  " + m.styles.Key.Render("esc") + " " + m.styles.Help.Render("cancel")
+		return prompt + "\n\n" + label + "\n" + path + "\n\n" + warning + "\n\n" + actions, true
+	case core.ModeError:
+		return m.styles.Error.Render(fmt.Sprintf("Error: %v", m.core.Err)), true
+	default:
+		return "", false
+	}
 }
 
 func (m Model) renderThemePicker() string {
@@ -278,10 +323,76 @@ func (m Model) renderThemePicker() string {
 	help := m.help.ShortHelpView([]key.Binding{m.keymap.binding(m.keymap.Select, "apply"), m.keymap.binding(m.keymap.Back, "cancel")})
 	content = header + "\n\n" + content + "\n\n" + help
 
-	boxStyle := m.styles.BoxWithWidth(m.width)
-	box := boxStyle.Render(content)
+	box := m.renderModalBox(content, false)
 	if m.height <= 0 || m.width <= 0 {
 		return box
 	}
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m Model) modalBoxDimensions() (int, int) {
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	boxWidth := boxStyle.GetWidth()
+	if boxWidth <= 0 {
+		boxWidth = minBoxWidth
+	}
+	if m.width > 0 && boxWidth > m.width {
+		boxWidth = m.width
+	}
+	if m.height <= 0 {
+		return boxWidth, 0
+	}
+	boxHeight := m.height * 3 / 4
+	if boxHeight < 8 {
+		boxHeight = m.height
+	}
+	if boxHeight > m.height-2 {
+		boxHeight = m.height - 2
+	}
+	if boxHeight < 1 {
+		boxHeight = 1
+	}
+	return boxWidth, boxHeight
+}
+
+func (m Model) renderModalBox(content string, fixedHeight bool) string {
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	if fixedHeight {
+		_, boxHeight := m.modalBoxDimensions()
+		if boxHeight > 0 {
+			boxStyle = boxStyle.Height(boxHeight)
+		}
+	}
+	return boxStyle.Render(content)
+}
+
+func (m Model) renderViewportContent(content string) string {
+	vp := m.viewport
+	boxWidth, boxHeight := m.modalBoxDimensions()
+	boxStyle := m.styles.BoxWithWidth(m.width)
+	maxWidth := boxWidth - boxStyle.GetHorizontalFrameSize()
+	maxHeight := boxHeight - boxStyle.GetVerticalFrameSize()
+	if maxWidth < 1 {
+		maxWidth = 1
+	}
+	if maxHeight < 1 {
+		maxHeight = 1
+	}
+
+	vp.Width = maxWidth
+	contentHeight := lipgloss.Height(content)
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+	if contentHeight < maxHeight {
+		vp.Height = contentHeight
+	} else {
+		vp.Height = maxHeight
+	}
+
+	vp.SetContent(content)
+	if signature := m.viewportContentSignature(content); signature != m.viewportContentSig {
+		vp.GotoTop()
+	}
+	return vp.View()
 }

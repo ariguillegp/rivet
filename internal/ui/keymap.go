@@ -11,6 +11,10 @@ import (
 type keyMap struct {
 	Up       key.Binding
 	Down     key.Binding
+	PageUp   key.Binding
+	PageDown key.Binding
+	Top      key.Binding
+	Bottom   key.Binding
 	Select   key.Binding
 	Delete   key.Binding
 	Sessions key.Binding
@@ -25,6 +29,10 @@ func newKeyMap() keyMap {
 	return keyMap{
 		Up:       key.NewBinding(key.WithKeys("up", "ctrl+k"), key.WithHelp("↑/ctrl+k", "up")),
 		Down:     key.NewBinding(key.WithKeys("down", "ctrl+j"), key.WithHelp("↓/ctrl+j", "down")),
+		PageUp:   key.NewBinding(key.WithKeys("pgup", "pageup"), key.WithHelp("pgup", "page up")),
+		PageDown: key.NewBinding(key.WithKeys("pgdown", "pgdn", "pagedown"), key.WithHelp("pgdn", "page down")),
+		Top:      key.NewBinding(key.WithKeys("home"), key.WithHelp("home", "top")),
+		Bottom:   key.NewBinding(key.WithKeys("end"), key.WithHelp("end", "bottom")),
 		Select:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 		Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete")),
 		Sessions: key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("ctrl+s", "sessions")),
@@ -42,6 +50,14 @@ func (k keyMap) actionForCore(msg tea.KeyMsg) (core.KeyAction, bool) {
 		return core.KeyUp, true
 	case key.Matches(msg, k.Down):
 		return core.KeyDown, true
+	case key.Matches(msg, k.PageUp):
+		return core.KeyPageUp, true
+	case key.Matches(msg, k.PageDown):
+		return core.KeyPageDown, true
+	case key.Matches(msg, k.Top):
+		return core.KeyTop, true
+	case key.Matches(msg, k.Bottom):
+		return core.KeyBottom, true
 	case key.Matches(msg, k.Select):
 		return core.KeyEnter, true
 	case key.Matches(msg, k.Delete):
@@ -82,8 +98,9 @@ func (k keyMap) sessionsEmptyShortHelp() []key.Binding {
 
 func (k keyMap) fullHelp(mode core.Mode) [][]key.Binding {
 	common := [][]key.Binding{
-		{k.Up, k.Down, k.Select, k.Back, k.Quit},
-		{k.Type, k.Toggle, k.Sessions, k.Delete, k.Theme},
+		{k.Up, k.Down, k.PageUp, k.PageDown, k.Select},
+		{k.Top, k.Bottom, k.Back, k.Quit, k.Toggle},
+		{k.Type, k.Sessions, k.Delete, k.Theme},
 	}
 	switch mode {
 	case core.ModeLoading, core.ModeError:
