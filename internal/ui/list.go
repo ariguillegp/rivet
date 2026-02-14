@@ -95,12 +95,11 @@ func newSessionTable(styles Styles) table.Model {
 
 func newSessionTableStyles(styles Styles) table.Styles {
 	ts := table.DefaultStyles()
-	normalFg := styles.Suggestion.GetForeground()
+	cellFg := styles.Path.GetForeground()
 	selectedFg := styles.SelectedSuggestion.GetForeground()
 
-	if normalFg != nil {
-		ts.Header = ts.Header.Foreground(normalFg)
-		ts.Cell = ts.Cell.Foreground(normalFg)
+	if cellFg != nil {
+		ts.Cell = ts.Cell.Foreground(cellFg)
 	}
 
 	ts.Header = ts.Header.Bold(true)
