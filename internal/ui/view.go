@@ -47,7 +47,7 @@ func (m Model) View() string {
 		prompt := m.styles.Prompt.Render("Enter the project directory:")
 		input := prompt + " " + m.input.View()
 		if len(m.projectList.Items()) > 0 {
-			content = input + "\n" + m.projectList.View()
+			content = input + "\n" + m.projectList.View() + m.renderCount(m.projectList)
 		} else {
 			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to quit.")
 		}
@@ -70,7 +70,7 @@ func (m Model) View() string {
 		prompt := m.styles.Prompt.Render("Select workspace or create new branch:")
 		input := prompt + " " + m.worktreeInput.View()
 		if len(m.worktreeList.Items()) > 0 {
-			content = input + "\n" + m.worktreeList.View()
+			content = input + "\n" + m.worktreeList.View() + m.renderCount(m.worktreeList)
 		} else {
 			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to go back.")
 		}
@@ -102,7 +102,7 @@ func (m Model) View() string {
 		prompt := m.styles.Prompt.Render("Select tool:")
 		input := prompt + " " + m.toolInput.View()
 		if len(m.toolList.Items()) > 0 {
-			content = input + "\n" + m.toolList.View()
+			content = input + "\n" + m.toolList.View() + m.renderCount(m.toolList)
 		} else {
 			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to go back.")
 		}
@@ -131,7 +131,7 @@ func (m Model) View() string {
 		prompt := m.styles.Prompt.Render("Filter sessions:")
 		input := prompt + " " + m.sessionInput.View()
 		if len(m.sessionList.Items()) > 0 {
-			content = input + "\n" + m.sessionList.View()
+			content = input + "\n" + m.sessionList.View() + m.renderCount(m.sessionList)
 		} else {
 			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to return.")
 		}
@@ -261,7 +261,7 @@ func (m Model) renderThemePicker() string {
 
 	var content string
 	if len(m.themeList.Items()) > 0 {
-		content = input + "\n" + m.themeList.View()
+		content = input + "\n" + m.themeList.View() + m.renderCount(m.themeList)
 	} else {
 		content = input + "\n" + m.styles.EmptyState.Render("No matching themes.")
 	}

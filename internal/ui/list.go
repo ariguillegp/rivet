@@ -101,6 +101,62 @@ func (m Model) listLimit() int {
 	return available
 }
 
+func listHeight(limit, total int) int {
+	if total <= 0 {
+		return 0
+	}
+	if limit <= 0 {
+		return total
+	}
+	if total < limit {
+		return total
+	}
+	return limit
+}
+
+func visibleListWindow(total, selectedIdx, maxItems int) (start, end int) {
+	if total <= 0 {
+		return 0, 0
+	}
+	if maxItems <= 0 || maxItems > total {
+		maxItems = total
+	}
+	if selectedIdx < 0 {
+		selectedIdx = 0
+	}
+	if selectedIdx >= total {
+		selectedIdx = total - 1
+	}
+	start = 0
+	if selectedIdx >= maxItems {
+		start = selectedIdx - maxItems + 1
+	}
+	end = start + maxItems
+	if end > total {
+		end = total
+		if end-start < maxItems && start > 0 {
+			start = end - maxItems
+			if start < 0 {
+				start = 0
+			}
+		}
+	}
+	return start, end
+}
+
+func (m Model) renderCount(l list.Model) string {
+	total := len(l.Items())
+	if total == 0 {
+		return ""
+	}
+	start, end := visibleListWindow(total, l.Index(), l.Height())
+	if end == 0 {
+		return ""
+	}
+	line := fmt.Sprintf("Showing %d-%d of %d", start+1, end, total)
+	return "\n" + m.styles.Count.Render(line)
+}
+
 func toItems(rows []suggestionItem) []list.Item {
 	items := make([]list.Item, 0, len(rows))
 	for _, row := range rows {
@@ -113,7 +169,7 @@ func (m *Model) applyListStyles() {
 	lists := []*list.Model{&m.projectList, &m.worktreeList, &m.toolList, &m.sessionList, &m.themeList}
 	for _, l := range lists {
 		l.SetDelegate(suggestionDelegate{styles: m.styles})
-		l.SetHeight(m.listLimit())
+		l.SetHeight(listHeight(m.listLimit(), len(l.Items())))
 	}
 }
 
@@ -126,6 +182,7 @@ func (m *Model) syncProjectList() {
 		rows = append(rows, suggestionItem{primary: m.displayPath(createPath), actionLabel: "create"})
 	}
 	m.projectList.SetItems(toItems(rows))
+	m.projectList.SetHeight(listHeight(m.listLimit(), len(rows)))
 	m.projectList.Select(m.core.SelectedIdx)
 }
 
@@ -138,6 +195,7 @@ func (m *Model) syncWorktreeList() {
 		rows = append(rows, suggestionItem{primary: name, actionLabel: "create"})
 	}
 	m.worktreeList.SetItems(toItems(rows))
+	m.worktreeList.SetHeight(listHeight(m.listLimit(), len(rows)))
 	m.worktreeList.Select(m.core.WorktreeIdx)
 }
 
@@ -147,6 +205,7 @@ func (m *Model) syncToolList() {
 		rows = append(rows, suggestionItem{primary: tool})
 	}
 	m.toolList.SetItems(toItems(rows))
+	m.toolList.SetHeight(listHeight(m.listLimit(), len(rows)))
 	m.toolList.Select(m.core.ToolIdx)
 }
 
@@ -160,6 +219,7 @@ func (m *Model) syncSessionList() {
 		rows = append(rows, suggestionItem{primary: label})
 	}
 	m.sessionList.SetItems(toItems(rows))
+	m.sessionList.SetHeight(listHeight(m.listLimit(), len(rows)))
 	m.sessionList.Select(m.core.SessionIdx)
 }
 
@@ -169,6 +229,7 @@ func (m *Model) syncThemeList() {
 		rows = append(rows, suggestionItem{primary: theme.Name})
 	}
 	m.themeList.SetItems(toItems(rows))
+	m.themeList.SetHeight(listHeight(m.listLimit(), len(rows)))
 	idx := indexOfThemeByName(m.filteredThemes, m.themes[m.activeThemeIdx].Name)
 	if idx < 0 {
 		idx = 0
