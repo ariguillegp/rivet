@@ -315,13 +315,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		prevMode := m.core.Mode
 
-		if key == "up" || key == "down" || key == "ctrl+j" || key == "ctrl+k" {
-			cmd := m.updateNavigationList(msg)
-			if cmd != nil {
-				cmds = append(cmds, cmd)
-			}
-		}
-
 		coreModel, effects, handled := core.UpdateKey(m.core, key)
 		m.core = coreModel
 		m.syncLists()

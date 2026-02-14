@@ -245,29 +245,3 @@ func (m *Model) syncLists() {
 	m.syncSessionList()
 	m.syncThemeList()
 }
-
-func (m *Model) updateNavigationList(msg tea.KeyMsg) tea.Cmd {
-	switch m.core.Mode {
-	case core.ModeBrowsing:
-		var cmd tea.Cmd
-		m.projectList, cmd = m.projectList.Update(msg)
-		m.core.SelectedIdx = m.projectList.Index()
-		return cmd
-	case core.ModeWorktree:
-		var cmd tea.Cmd
-		m.worktreeList, cmd = m.worktreeList.Update(msg)
-		m.core.WorktreeIdx = m.worktreeList.Index()
-		return cmd
-	case core.ModeTool:
-		var cmd tea.Cmd
-		m.toolList, cmd = m.toolList.Update(msg)
-		m.core.ToolIdx = m.toolList.Index()
-		return cmd
-	case core.ModeSessions:
-		var cmd tea.Cmd
-		m.sessionList, cmd = m.sessionList.Update(msg)
-		m.core.SessionIdx = m.sessionList.Index()
-		return cmd
-	}
-	return nil
-}
