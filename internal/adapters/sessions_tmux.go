@@ -113,9 +113,9 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 			info = core.SessionInfo{Name: name, DirPath: sessionPath}
 		}
 		info.LastActive = lastActive
-		projectPath, branch := sessionMetadata(sessionPath)
-		if strings.TrimSpace(projectPath) != "" {
-			info.Project = projectPath
+		projectName, branch := sessionMetadata(sessionPath)
+		if strings.TrimSpace(projectName) != "" {
+			info.Project = projectName
 		}
 		if strings.TrimSpace(branch) != "" {
 			info.Branch = branch
@@ -141,14 +141,39 @@ func parseTmuxUnixTime(parts []string, idx int) time.Time {
 	return time.Unix(unixValue, 0)
 }
 
-func sessionMetadata(dirPath string) (projectPath string, branch string) {
+func sessionMetadata(dirPath string) (projectName string, branch string) {
 	dirPath = strings.TrimSpace(dirPath)
 	if dirPath == "" {
 		return "", ""
 	}
-	projectPath = gitOutput("-C", dirPath, "rev-parse", "--show-toplevel")
+	projectName = sessionProjectName(dirPath)
 	branch = gitOutput("-C", dirPath, "branch", "--show-current")
-	return strings.TrimSpace(projectPath), strings.TrimSpace(branch)
+	return strings.TrimSpace(projectName), strings.TrimSpace(branch)
+}
+
+func sessionProjectName(dirPath string) string {
+	commonDir := gitOutput("-C", dirPath, "rev-parse", "--git-common-dir")
+	if commonDir != "" {
+		if !filepath.IsAbs(commonDir) {
+			commonDir = filepath.Clean(filepath.Join(dirPath, commonDir))
+		}
+		if strings.EqualFold(filepath.Base(commonDir), ".git") {
+			project := strings.TrimSpace(filepath.Base(filepath.Dir(commonDir)))
+			if project != "" && project != "." && project != string(filepath.Separator) {
+				return project
+			}
+		}
+	}
+
+	topLevel := gitOutput("-C", dirPath, "rev-parse", "--show-toplevel")
+	if topLevel == "" {
+		topLevel = dirPath
+	}
+	name := strings.TrimSpace(filepath.Base(filepath.Clean(topLevel)))
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		return ""
+	}
+	return name
 }
 
 func gitOutput(args ...string) string {

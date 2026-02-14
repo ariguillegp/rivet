@@ -112,14 +112,18 @@ func sessionLastActiveLabel(lastActive time.Time) string {
 }
 
 func (m Model) sessionProjectLabel(session core.SessionInfo) string {
-	projectPath := strings.TrimSpace(session.Project)
-	if projectPath == "" {
-		projectPath = filepath.Dir(session.DirPath)
+	project := strings.TrimSpace(session.Project)
+	if project != "" {
+		return project
 	}
+	if session.DirPath == "" {
+		return ""
+	}
+	projectPath := filepath.Dir(session.DirPath)
 	if projectPath == "." || projectPath == string(filepath.Separator) {
 		return ""
 	}
-	return m.displayPath(projectPath)
+	return filepath.Base(projectPath)
 }
 
 func (m Model) sessionBranchLabel(session core.SessionInfo) string {

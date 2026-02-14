@@ -123,8 +123,8 @@ exit 0
 `
 
 	gitScript := `#!/bin/sh
-if [ "$3" = "rev-parse" ]; then
-  echo "/home/demo/Projects/rivet"
+if [ "$3" = "rev-parse" ] && [ "$4" = "--git-common-dir" ]; then
+  echo "/home/demo/Projects/rivet/.git"
   exit 0
 fi
 if [ "$3" = "branch" ]; then
@@ -153,8 +153,8 @@ exit 1
 	if len(sessions) != 1 {
 		t.Fatalf("expected one session, got %d", len(sessions))
 	}
-	if sessions[0].Project != "/home/demo/Projects/rivet" {
-		t.Fatalf("expected project path from git metadata, got %q", sessions[0].Project)
+	if sessions[0].Project != "rivet" {
+		t.Fatalf("expected project name from git metadata, got %q", sessions[0].Project)
 	}
 	if sessions[0].Branch != "rbac-sentinel" {
 		t.Fatalf("expected branch from git metadata, got %q", sessions[0].Branch)

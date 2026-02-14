@@ -549,7 +549,7 @@ func TestViewSessionsUsesTableOnWideTerminal(t *testing.T) {
 	m.core.Sessions = []core.SessionInfo{{
 		Name:       "alpha",
 		DirPath:    "/home/demo/Projects/rivet/rbac-sentinel",
-		Project:    "/home/demo/Projects/rivet",
+		Project:    "rivet",
 		Branch:     "rbac-sentinel",
 		Tool:       "codex",
 		LastActive: time.Unix(1735689600, 0),
@@ -559,7 +559,7 @@ func TestViewSessionsUsesTableOnWideTerminal(t *testing.T) {
 	m.syncSessionList()
 
 	view := stripANSI(m.View())
-	for _, part := range []string{"Project", "Branch", "Tool", "Last active", "~/Projects/rivet", "rbac-sentinel"} {
+	for _, part := range []string{"Project", "Branch", "Tool", "Last active", "rivet", "rbac-sentinel"} {
 		if !strings.Contains(view, part) {
 			t.Fatalf("expected wide sessions view to contain %q, got %q", part, view)
 		}
