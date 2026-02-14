@@ -96,18 +96,15 @@ func newSessionTable(styles Styles) table.Model {
 func newSessionTableStyles(styles Styles) table.Styles {
 	ts := table.DefaultStyles()
 	headerFg := styles.Body.GetForeground()
-	cellFg := styles.Path.GetForeground()
 	selectedFg := styles.SelectedSuggestion.GetForeground()
 
 	ts.Header = ts.Header.Bold(true)
 	if headerFg != nil {
 		ts.Header = ts.Header.Foreground(headerFg)
 	}
-	if cellFg != nil {
-		ts.Cell = ts.Cell.Foreground(cellFg)
-	}
 
-	ts.Selected = ts.Cell.Copy().UnsetBackground().Bold(true)
+	// Selected row should only change emphasis/color and not add extra row padding.
+	ts.Selected = styles.SelectedSuggestion.Copy()
 	if selectedFg != nil {
 		ts.Selected = ts.Selected.Foreground(selectedFg)
 	}
@@ -191,6 +188,14 @@ func listHeight(limit, total int) int {
 	return limit
 }
 
+func tableHeight(limit, total int) int {
+	height := listHeight(limit, total)
+	if height > 0 {
+		return height + 1
+	}
+	return 0
+}
+
 func visibleListWindow(total, selectedIdx, maxItems int) (start, end int) {
 	if total <= 0 {
 		return 0, 0
@@ -249,7 +254,7 @@ func (m *Model) applyListStyles() {
 		l.SetHeight(listHeight(m.listLimit(), len(l.Items())))
 	}
 	m.sessionTable.SetStyles(newSessionTableStyles(m.styles))
-	m.sessionTable.SetHeight(listHeight(m.listLimit(), len(m.sessionTable.Rows())))
+	m.sessionTable.SetHeight(tableHeight(m.listLimit(), len(m.sessionTable.Rows())))
 	if m.width > 0 {
 		m.sessionTable.SetWidth(max(0, m.width-8))
 	}
@@ -311,8 +316,29 @@ func (m *Model) syncSessionList() {
 	m.sessionList.SetHeight(listHeight(m.listLimit(), len(compactRows)))
 	m.sessionList.Select(m.core.SessionIdx)
 	m.sessionTable.SetRows(tableRows)
-	m.sessionTable.SetHeight(listHeight(m.listLimit(), len(tableRows)))
-	m.sessionTable.SetCursor(m.core.SessionIdx)
+	m.sessionTable.SetHeight(tableHeight(m.listLimit(), len(tableRows)))
+	m.syncSessionTableCursor(m.core.SessionIdx)
+}
+
+func (m *Model) syncSessionTableCursor(idx int) {
+	total := len(m.sessionTable.Rows())
+	if total == 0 {
+		m.sessionTable.SetCursor(0)
+		return
+	}
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= total {
+		idx = total - 1
+	}
+
+	// Bubble's table keeps viewport offset when SetCursor is used directly.
+	// Re-anchor at top first, then move to the target row so it's visible.
+	m.sessionTable.GotoTop()
+	if idx > 0 {
+		m.sessionTable.MoveDown(idx)
+	}
 }
 
 func (m *Model) syncThemeList() {

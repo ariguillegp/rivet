@@ -129,7 +129,8 @@ func (m Model) View() string {
 		if m.sessionListIsCompact() {
 			content = input + "\n" + m.sessionList.View() + m.renderCount(m.sessionList)
 		} else {
-			content = input + "\n" + m.sessionTable.View() + m.renderTableCount(m.sessionTable)
+			tableView := m.styles.Path.Render(m.sessionTable.View())
+			content = input + "\n" + tableView + m.renderTableCount(m.sessionTable)
 		}
 		helpLine = m.shortHelpView()
 

@@ -40,3 +40,23 @@ func TestViewShowsCountMessage(t *testing.T) {
 		t.Fatalf("expected count line in view, got %q", view)
 	}
 }
+
+func TestNewSessionTableStylesUsesAccentSelectedForegroundWithoutBackground(t *testing.T) {
+	styles := NewStyles(Themes()[0])
+	ts := newSessionTableStyles(styles)
+
+	got := fmt.Sprint(ts.Selected.GetForeground())
+	want := fmt.Sprint(styles.SelectedSuggestion.GetForeground())
+	if got != want {
+		t.Fatalf("expected selected foreground %q, got %q", want, got)
+	}
+	if got := fmt.Sprint(ts.Selected.GetBackground()); got != "{}" {
+		t.Fatalf("expected no selected background, got %q", got)
+	}
+	if got := ts.Selected.GetPaddingLeft(); got != 0 {
+		t.Fatalf("expected no selected left padding, got %d", got)
+	}
+	if got := ts.Selected.GetPaddingRight(); got != 0 {
+		t.Fatalf("expected no selected right padding, got %d", got)
+	}
+}
