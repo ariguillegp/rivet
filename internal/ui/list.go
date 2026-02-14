@@ -3,11 +3,14 @@ package ui
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ariguillegp/rivet/internal/core"
 	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -72,6 +75,57 @@ func (d suggestionDelegate) Render(w io.Writer, m listmodel.Model, index int, it
 		parts = append(parts, pathStyle.Render("- "+row.detail))
 	}
 	_, _ = fmt.Fprint(w, prefix+strings.Join(parts, " "))
+}
+
+const compactSessionMinWidth = 95
+
+func newSessionTable(styles Styles) table.Model {
+	columns := []table.Column{
+		{Title: "Session Name", Width: 24},
+		{Title: "Project", Width: 18},
+		{Title: "Worktree", Width: 16},
+		{Title: "Tool", Width: 10},
+		{Title: "Last Active", Width: 16},
+	}
+	t := table.New(table.WithColumns(columns), table.WithRows(nil), table.WithFocused(true), table.WithHeight(defaultListSuggestions))
+	t.SetStyles(newSessionTableStyles(styles))
+	t.KeyMap.LineUp = key.NewBinding(key.WithKeys("up", "ctrl+k"))
+	t.KeyMap.LineDown = key.NewBinding(key.WithKeys("down", "ctrl+j"))
+	return t
+}
+
+func newSessionTableStyles(styles Styles) table.Styles {
+	ts := table.DefaultStyles()
+	ts.Header = ts.Header.Foreground(styles.Theme.Subtle).BorderForeground(styles.Theme.Border)
+	ts.Selected = ts.Selected.Foreground(styles.Theme.Fg).Background(styles.Theme.Selection).Bold(false)
+	return ts
+}
+
+func (m Model) sessionListIsCompact() bool {
+	return m.width > 0 && m.width < compactSessionMinWidth
+}
+
+func sessionLastActiveLabel(lastActive time.Time) string {
+	if lastActive.IsZero() {
+		return "—"
+	}
+	return lastActive.Local().Format("2006-01-02 15:04")
+}
+
+func (m Model) sessionProjectLabel(session core.SessionInfo) string {
+	projectPath := filepath.Dir(session.DirPath)
+	if projectPath == "." || projectPath == string(filepath.Separator) {
+		return ""
+	}
+	return filepath.Base(projectPath)
+}
+
+func (m Model) sessionWorktreeLabel(session core.SessionInfo) string {
+	name := core.SessionWorktreeName(session.DirPath)
+	if name != "" {
+		return name
+	}
+	return filepath.Base(session.DirPath)
 }
 
 func newSuggestionList(styles Styles) listmodel.Model {
@@ -171,6 +225,11 @@ func (m *Model) applyListStyles() {
 		l.SetDelegate(suggestionDelegate{styles: m.styles})
 		l.SetHeight(listHeight(m.listLimit(), len(l.Items())))
 	}
+	m.sessionTable.SetStyles(newSessionTableStyles(m.styles))
+	m.sessionTable.SetHeight(listHeight(m.listLimit(), len(m.sessionTable.Rows())))
+	if m.width > 0 {
+		m.sessionTable.SetWidth(max(0, m.width-8))
+	}
 }
 
 func (m *Model) syncProjectList() {
@@ -210,17 +269,28 @@ func (m *Model) syncToolList() {
 }
 
 func (m *Model) syncSessionList() {
-	rows := make([]suggestionItem, 0, len(m.core.FilteredSessions))
+	compactRows := make([]suggestionItem, 0, len(m.core.FilteredSessions))
+	tableRows := make([]table.Row, 0, len(m.core.FilteredSessions))
 	for _, session := range m.core.FilteredSessions {
 		label := core.SessionDisplayLabel(session)
 		if label == "" {
 			label = m.displayPath(session.DirPath)
 		}
-		rows = append(rows, suggestionItem{primary: label})
+		compactRows = append(compactRows, suggestionItem{primary: label})
+		tableRows = append(tableRows, table.Row{
+			session.Name,
+			m.sessionProjectLabel(session),
+			m.sessionWorktreeLabel(session),
+			session.Tool,
+			sessionLastActiveLabel(session.LastActive),
+		})
 	}
-	m.sessionList.SetItems(toItems(rows))
-	m.sessionList.SetHeight(listHeight(m.listLimit(), len(rows)))
+	m.sessionList.SetItems(toItems(compactRows))
+	m.sessionList.SetHeight(listHeight(m.listLimit(), len(compactRows)))
 	m.sessionList.Select(m.core.SessionIdx)
+	m.sessionTable.SetRows(tableRows)
+	m.sessionTable.SetHeight(listHeight(m.listLimit(), len(tableRows)))
+	m.sessionTable.SetCursor(m.core.SessionIdx)
 }
 
 func (m *Model) syncThemeList() {

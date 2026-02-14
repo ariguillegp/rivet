@@ -540,3 +540,43 @@ func TestToolStartingProgressStaysBelowOneWhileWaitingForOpen(t *testing.T) {
 		t.Fatalf("expected progress to stay below complete while opening session, got %f", progress)
 	}
 }
+
+func TestViewSessionsUsesTableOnWideTerminal(t *testing.T) {
+	m := newTestModel()
+	m.height = 25
+	m.width = 140
+	m.core.Mode = core.ModeSessions
+	m.core.Sessions = []core.SessionInfo{{
+		Name:       "alpha",
+		DirPath:    "/repo/project/feature-a",
+		Tool:       "codex",
+		LastActive: time.Unix(1735689600, 0),
+	}}
+	m.core.FilteredSessions = m.core.Sessions
+	m.syncSessionList()
+
+	view := stripANSI(m.View())
+	for _, part := range []string{"Session Name", "Project", "Worktree", "Tool", "Last Active"} {
+		if !strings.Contains(view, part) {
+			t.Fatalf("expected wide sessions view to contain %q, got %q", part, view)
+		}
+	}
+}
+
+func TestViewSessionsUsesCompactListOnNarrowTerminal(t *testing.T) {
+	m := newTestModel()
+	m.height = 25
+	m.width = 80
+	m.core.Mode = core.ModeSessions
+	m.core.Sessions = []core.SessionInfo{{Name: "alpha", DirPath: "/repo/project/feature-a", Tool: "codex"}}
+	m.core.FilteredSessions = m.core.Sessions
+	m.syncSessionList()
+
+	view := stripANSI(m.View())
+	if strings.Contains(view, "Session Name") {
+		t.Fatalf("expected narrow sessions view to omit table headers, got %q", view)
+	}
+	if !strings.Contains(view, "alpha") {
+		t.Fatalf("expected narrow sessions view to include session label, got %q", view)
+	}
+}

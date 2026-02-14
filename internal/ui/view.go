@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/ariguillegp/rivet/internal/core"
@@ -120,10 +121,15 @@ func (m Model) View() string {
 		}
 		prompt := m.styles.Prompt.Render("Filter sessions:")
 		input := prompt + " " + m.sessionInput.View()
-		if len(m.sessionList.Items()) > 0 {
+		if len(m.core.FilteredSessions) == 0 {
+			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to return.")
+			helpLine = m.shortHelpView()
+			break
+		}
+		if m.sessionListIsCompact() {
 			content = input + "\n" + m.sessionList.View() + m.renderCount(m.sessionList)
 		} else {
-			content = input + "\n" + m.styles.EmptyState.Render("No matches. Press esc to return.")
+			content = input + "\n" + m.sessionTable.View() + m.renderTableCount(m.sessionTable)
 		}
 		helpLine = m.shortHelpView()
 
@@ -152,6 +158,19 @@ func (m Model) View() string {
 	}
 
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m Model) renderTableCount(t table.Model) string {
+	total := len(t.Rows())
+	if total == 0 {
+		return ""
+	}
+	start, end := visibleListWindow(total, t.Cursor(), t.Height())
+	if end == 0 {
+		return ""
+	}
+	line := fmt.Sprintf("Showing %d-%d of %d", start+1, end, total)
+	return "\n" + m.styles.Count.Render(line)
 }
 
 func clamp01(value float64) float64 {
