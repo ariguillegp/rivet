@@ -55,6 +55,7 @@ type Model struct {
 	homeDir              string
 	help                 help.Model
 	viewport             viewport.Model
+	viewportContentSig   string
 	keymap               keyMap
 }
 
@@ -168,6 +169,8 @@ func (m *Model) updateViewportSize() {
 }
 
 func (m *Model) updateViewport(msg tea.KeyMsg) tea.Cmd {
+	m.syncViewportContent()
+
 	switch {
 	case key.Matches(msg, m.keymap.Down):
 		m.viewport.LineDown(1)
@@ -192,6 +195,23 @@ func (m *Model) updateViewport(msg tea.KeyMsg) tea.Cmd {
 		m.viewport, cmd = m.viewport.Update(msg)
 		return cmd
 	}
+}
+
+func (m *Model) syncViewportContent() {
+	content, signature, ok := m.currentViewportContent()
+	if !ok {
+		if m.viewportContentSig != "" {
+			m.viewport.GotoTop()
+			m.viewportContentSig = ""
+		}
+		return
+	}
+	m.updateViewportSize()
+	m.viewport.SetContent(content)
+	if signature != m.viewportContentSig {
+		m.viewport.GotoTop()
+	}
+	m.viewportContentSig = signature
 }
 
 func (m *Model) openThemePicker() {
@@ -336,6 +356,10 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
+
+	if !m.showHelp && !m.isViewportActive() && m.viewportContentSig != "" {
+		m.viewportContentSig = ""
+	}
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:

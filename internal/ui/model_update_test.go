@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,9 +53,7 @@ func TestUpdateViewportScrollHandledInHelp(t *testing.T) {
 	m := newTestModel()
 	m.showHelp = true
 	m.width = 80
-	m.height = 8
-	m.updateViewportSize()
-	m.viewport.SetContent("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\nline12\nline13\nline14\nline15")
+	m.height = 5
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
 	next := updated.(Model)
@@ -68,8 +67,6 @@ func TestUpdateViewportScrollHandledInDeleteConfirm(t *testing.T) {
 	m.core.Mode = core.ModeProjectDeleteConfirm
 	m.width = 80
 	m.height = 8
-	m.updateViewportSize()
-	m.viewport.SetContent("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\nline12\nline13\nline14\nline15")
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
 	next := updated.(Model)
@@ -94,23 +91,7 @@ func TestUpdateViewportHomeEndHandledInHelp(t *testing.T) {
 	m := newTestModel()
 	m.showHelp = true
 	m.width = 80
-	m.height = 8
-	m.updateViewportSize()
-	m.viewport.SetContent(`line1
-line2
-line3
-line4
-line5
-line6
-line7
-line8
-line9
-line10
-line11
-line12
-line13
-line14
-line15`)
+	m.height = 5
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnd})
 	next := updated.(Model)
@@ -122,6 +103,28 @@ line15`)
 	next = updated.(Model)
 	if next.viewport.YOffset != 0 {
 		t.Fatalf("expected home key to move viewport to top, got offset %d", next.viewport.YOffset)
+	}
+}
+
+func TestViewResetsViewportOffsetWhenModalChanges(t *testing.T) {
+	m := newTestModel()
+	m.showHelp = true
+	m.width = 80
+	m.height = 5
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	next := updated.(Model)
+	if next.viewport.YOffset <= 0 {
+		t.Fatalf("expected help viewport to scroll before switching modal, got %d", next.viewport.YOffset)
+	}
+
+	next.showHelp = false
+	next.core.Mode = core.ModeProjectDeleteConfirm
+	next.core.ProjectDeletePath = "/tmp/demo"
+
+	view := stripANSI(next.View())
+	if !strings.Contains(view, "This will delete the project and all workspaces:") {
+		t.Fatalf("expected delete confirm modal to render from top after modal switch, got %q", view)
 	}
 }
 
