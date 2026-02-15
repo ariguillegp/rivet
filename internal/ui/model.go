@@ -173,10 +173,10 @@ func (m *Model) updateViewport(msg tea.KeyMsg) tea.Cmd {
 
 	switch {
 	case key.Matches(msg, m.keymap.Down):
-		m.viewport.LineDown(1)
+		m.viewport.ScrollDown(1)
 		return nil
 	case key.Matches(msg, m.keymap.Up):
-		m.viewport.LineUp(1)
+		m.viewport.ScrollUp(1)
 		return nil
 	case key.Matches(msg, m.keymap.PageDown):
 		m.viewport.PageDown()

@@ -104,7 +104,7 @@ func newSessionTableStyles(styles Styles) table.Styles {
 	}
 
 	// Selected row should only change emphasis/color and not add extra row padding.
-	ts.Selected = styles.SelectedSuggestion.Copy()
+	ts.Selected = styles.SelectedSuggestion
 	if selectedFg != nil {
 		ts.Selected = ts.Selected.Foreground(selectedFg)
 	}

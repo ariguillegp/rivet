@@ -6,22 +6,21 @@ A lightweight TUI to manage your fleet of agents across all your projects.
 
 - Guided 3-step workflow: pick a project, pick/create a workspace (git worktree), then launch a tool (`opencode`, `amp`, `claude`, `codex`, or `none`).
 - Fast fuzzy filtering in every step (projects, workspaces, tools, and sessions).
+- Scans `~/Projects` (or provided roots) up to 2 levels deep, skipping hidden/common vendor directories.
 - Built-in tmux session switcher: press `ctrl+s` from the main screens to open **Active tmux sessions**, filter them, and press `enter` to attach.
-- Warm-start support for tool sessions, plus session reuse/caching for quicker reopen flows.
-- Project/workspace lifecycle management in-app (create and delete with confirmation and cleanup).
+- Tool sessions are prewarmed in the background and reused if already running (warm-starts for `opencode`, `amp`, `claude`, and `codex`; `none` opens a shell).
+- Project/workspace lifecycle management in-app (create and delete with confirmation and cleanup). Worktree deletions are limited to rivet-managed worktrees under `~/.rivet/worktrees` (project root is protected).
 - Stale worktree references (from manually deleted directories) are automatically pruned whenever the worktree list is loaded, keeping the list accurate.
-- Keyboard-first UX with help modal (`?`) and theme picker (`ctrl+t`).
+- Keyboard-first UX with help modal (`?`), theme picker (`ctrl+t`), and a persistent help bar.
 - Optional non-interactive mode for launching sessions directly via CLI flags.
-- Theme picker to customize the UI
-- Help bar at the bottom for better discoverability
 
 ## Run agent tool in worktree (session caching)
-After selecting a project/worktree tuple, the program automatically opens new sessions for tools that benefit from warm starts.
+After selecting a project/worktree tuple, the program prewarms all supported tools in the background (creating tmux sessions if needed). Existing sessions are reused, and selecting `none` opens a shell immediately.
 
 https://github.com/user-attachments/assets/d0d314d5-413f-4480-b6aa-0523587ff8cc
 
 ## Create/Delete worktree
-Deleting a worktree also kills any session using it.
+Deleting a worktree also kills any session using it. Only the project root and rivet-managed worktrees under `~/.rivet/worktrees` are listed, and the root worktree cannot be deleted from the UI.
 
 https://github.com/user-attachments/assets/39cfb6ba-c9df-4652-a9ba-b4ef3fe3aeeb
 
@@ -102,6 +101,8 @@ By default, rv scans `~/Projects` (personal preference). Pass custom directories
 rv ~/projects ~/work
 ```
 
+Scanning goes up to 2 directory levels deep and skips common vendor/cache directories such as `.git`, `node_modules`, `vendor`, `.cache`, `.venv`, `__pycache__`, and `target`.
+
 ### Non-Interactive Launch
 
 Open a session directly without the UI:
@@ -115,6 +116,8 @@ rv --project my-project --worktree main --tool codex [--detach]
 
 rv --project my-project --worktree main --tool none [--detach]
 ```
+
+`--project` and `--worktree` accept names or paths. If the worktree doesn't exist yet, rivet creates a new worktree/branch automatically. Use `--create-project` to initialize a missing project (in the first root or at the provided path).
 
 Create a new project non-interactively:
 
