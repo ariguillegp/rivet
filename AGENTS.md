@@ -14,7 +14,8 @@ Use progressive guidance: start here for orientation, then check `internal/*/AGE
 - `internal/adapters`: OS/git/tmux implementations
 
 ## Build & Verify
-- `make validate` (gofmt, golangci-lint, tests)
+- `make -j validate` (gofmt, golangci-lint, tests, govulncheck)
+  - Always use `-j` so lint, test, and vulncheck run concurrently after format completes (they declare `format` as a prerequisite to avoid races with `gofmt -w`).
 - `make deploy` (install binary)
 
 ## Design Guidance
