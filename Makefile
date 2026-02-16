@@ -5,14 +5,14 @@ validate: format lint test vulncheck
 format:
 	gofmt -w ./cmd ./internal
 
-lint:
-	golangci-lint run --config=.golangci.yml ./...
+lint: format
+	golangci-lint run --fix --config=.golangci.yml ./...
 
-test:
+test: format
 	go test ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
-vulncheck:
+vulncheck: format
 	govulncheck ./...
 
 deploy:
