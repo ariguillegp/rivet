@@ -7,12 +7,48 @@ repos:
       - id: check-added-large-files
       - id: end-of-file-fixer
       - id: trailing-whitespace
+      - id: detect-private-key
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.7.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
 
   - repo: local
     hooks:
+      - id: go-mod-tidy
+        name: go mod tidy
+        entry: sh -c 'go mod tidy && git diff --exit-code go.mod go.sum'
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: gofumpt
+        name: gofumpt (strict formatting)
+        entry: gofumpt -w
+        language: system
+        types: [go]
+
       - id: golangci-lint
         name: golangci-lint (system)
         entry: golangci-lint run --config=.golangci.yml ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-test-short
+        name: go test -short
+        entry: go test -short ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-build
+        name: go build check
+        entry: sh -c 'go build ./...'
         language: system
         types: [go]
         pass_filenames: false
