@@ -7,10 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ariguillegp/rivet/internal/core"
-
-	"github.com/ariguillegp/rivet/internal/ports"
-	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
@@ -19,6 +15,10 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/ariguillegp/rivet/internal/core"
+	"github.com/ariguillegp/rivet/internal/ports"
+	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 )
 
 type Model struct {
@@ -384,7 +384,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, m.keymap.Quit):
 				return m, tea.Quit
 			case key.Matches(msg, m.keymap.Up, m.keymap.Down, m.keymap.PageUp, m.keymap.PageDown, m.keymap.Top, m.keymap.Bottom):
-				return m, m.updateViewport(msg)
+				cmd := m.updateViewport(msg)
+				return m, cmd
 			}
 			return m, nil
 		}
@@ -425,7 +426,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.isViewportActive() && key.Matches(msg, m.keymap.Up, m.keymap.Down, m.keymap.PageUp, m.keymap.PageDown, m.keymap.Top, m.keymap.Bottom) {
-			return m, m.updateViewport(msg)
+			cmd := m.updateViewport(msg)
+			return m, cmd
 		}
 
 		prevMode := m.core.Mode
@@ -848,7 +850,6 @@ func (m Model) prewarmAllToolsCmd(dirPath string, tools []string) tea.Cmd {
 	}
 	cmds := make([]tea.Cmd, 0, len(tools))
 	for _, tool := range tools {
-		tool := tool
 		spec := core.SessionSpec{DirPath: dirPath, Tool: tool, Detach: true}
 		cmds = append(cmds, func() tea.Msg {
 			created, err := m.sessions.PrewarmSession(spec)

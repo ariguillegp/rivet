@@ -124,7 +124,7 @@ func TestMsgToolPrewarmFailedReturnsToToolMode(t *testing.T) {
 		PendingSpec: &pending,
 	}
 
-	updated, effects := Update(m, MsgToolPrewarmFailed{Tool: "opencode", Err: errTest("prewarm failed")})
+	updated, effects := Update(m, MsgToolPrewarmFailed{Tool: "opencode", Err: errTestError("prewarm failed")})
 	if updated.Mode != ModeTool {
 		t.Fatalf("expected mode tool after failure, got %v", updated.Mode)
 	}

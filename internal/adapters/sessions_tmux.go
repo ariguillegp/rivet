@@ -141,7 +141,7 @@ func parseTmuxUnixTime(parts []string, idx int) time.Time {
 	return time.Unix(unixValue, 0)
 }
 
-func sessionMetadata(dirPath string) (projectName string, branch string) {
+func sessionMetadata(dirPath string) (projectName, branch string) {
 	dirPath = strings.TrimSpace(dirPath)
 	if dirPath == "" {
 		return "", ""
@@ -223,10 +223,7 @@ func sessionNameFor(spec core.SessionSpec) (string, error) {
 	}
 
 	cleanPath := filepath.Clean(spec.DirPath)
-	return strings.Join([]string{
-		sanitizeSessionPart(cleanPath, "worktree"),
-		sanitizeSessionPart(spec.Tool, "tool"),
-	}, "__"), nil
+	return sanitizeSessionPart(cleanPath, "worktree") + "__" + sanitizeSessionPart(spec.Tool, "tool"), nil
 }
 
 func ensureSession(sessionName, dirPath, tool string) (bool, error) {
@@ -286,8 +283,8 @@ func currentClientTTY() string {
 	return strings.TrimSpace(string(output))
 }
 
-func toolCommand(tool string) (string, []string) {
-	shell := os.Getenv("SHELL")
+func toolCommand(tool string) (shell string, args []string) {
+	shell = os.Getenv("SHELL")
 	if strings.TrimSpace(shell) == "" {
 		shell = "/bin/sh"
 	}

@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ariguillegp/rivet/internal/core"
-	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/ariguillegp/rivet/internal/core"
+	"github.com/ariguillegp/rivet/internal/ui/listmodel"
 )
 
 const (

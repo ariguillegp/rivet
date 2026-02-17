@@ -224,7 +224,7 @@ func TestViewError(t *testing.T) {
 	m := newTestModel()
 	m.height = 25
 	m.core.Mode = core.ModeError
-	m.core.Err = errTest("boom")
+	m.core.Err = errTestError("boom")
 
 	view := stripANSI(m.View())
 	if !strings.Contains(view, "Error: boom") {
@@ -300,7 +300,7 @@ func TestViewHelpLinePerMode(t *testing.T) {
 			name: "error",
 			mode: core.ModeError,
 			setup: func(m *Model) {
-				m.core.Err = errTest("boom")
+				m.core.Err = errTestError("boom")
 			},
 			helpParts: []string{"esc", "quit"},
 		},
@@ -497,9 +497,9 @@ func TestViewNoScrollIndicatorsForShortList(t *testing.T) {
 	}
 }
 
-type errTest string
+type errTestError string
 
-func (e errTest) Error() string {
+func (e errTestError) Error() string {
 	return string(e)
 }
 
@@ -592,7 +592,7 @@ func TestViewSessionsTableShowsSelectedRowOutsideInitialViewport(t *testing.T) {
 	m.core.Mode = core.ModeSessions
 
 	sessions := make([]core.SessionInfo, 0, 13)
-	for i := 0; i < 13; i++ {
+	for i := range 13 {
 		sessions = append(sessions, core.SessionInfo{
 			Name:    fmt.Sprintf("session-%02d", i),
 			DirPath: fmt.Sprintf("/repo/rivet/branch-%02d", i),

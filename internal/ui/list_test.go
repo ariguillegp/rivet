@@ -19,7 +19,7 @@ func TestSyncProjectListSetsAdaptiveHeight(t *testing.T) {
 	}
 
 	m.core.Filtered = nil
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		m.core.Filtered = append(m.core.Filtered, core.DirEntry{Path: fmt.Sprintf("/p%d", i), Name: fmt.Sprintf("p%d", i)})
 	}
 	m.syncProjectList()

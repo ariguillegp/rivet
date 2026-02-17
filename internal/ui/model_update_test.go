@@ -146,8 +146,12 @@ func TestUpdatePageDownMovesSelectionInBrowsing(t *testing.T) {
 	m := newTestModel()
 	m.core.Mode = core.ModeBrowsing
 	m.core.Filtered = []core.DirEntry{
-		{Path: "/1", Name: "1"}, {Path: "/2", Name: "2"}, {Path: "/3", Name: "3"},
-		{Path: "/4", Name: "4"}, {Path: "/5", Name: "5"}, {Path: "/6", Name: "6"},
+		{Path: "/1", Name: "1"},
+		{Path: "/2", Name: "2"},
+		{Path: "/3", Name: "3"},
+		{Path: "/4", Name: "4"},
+		{Path: "/5", Name: "5"},
+		{Path: "/6", Name: "6"},
 	}
 	m.core.SelectedIdx = 0
 	m.syncLists()

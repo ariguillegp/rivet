@@ -269,13 +269,13 @@ func (m Model) viewportContentSignature(content string) string {
 	return fmt.Sprintf("%s:%x", owner, hash.Sum64())
 }
 
-func (m Model) currentViewportContent() (string, string, bool) {
+func (m Model) currentViewportContent() (content, signature string, ok bool) {
 	if m.showHelp {
-		content := m.helpModalContent()
+		content = m.helpModalContent()
 		return content, m.viewportContentSignature(content), true
 	}
 
-	content, ok := m.modalViewportContent()
+	content, ok = m.modalViewportContent()
 	if !ok {
 		return "", "", false
 	}
@@ -330,7 +330,7 @@ func (m Model) renderThemePicker() string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
 }
 
-func (m Model) modalBoxDimensions() (int, int) {
+func (m Model) modalBoxDimensions() (width, height int) {
 	boxStyle := m.styles.BoxWithWidth(m.width)
 	boxWidth := boxStyle.GetWidth()
 	if boxWidth <= 0 {

@@ -62,7 +62,7 @@ func TestPrewarmMessagesUpdateWarmupCounters(t *testing.T) {
 		t.Fatalf("expected failed count to remain 0 after existing message, got %d", updated.ToolWarmupFailed)
 	}
 
-	updated, _ = Update(updated, MsgToolPrewarmFailed{Tool: "amp", Err: errTest("boom")})
+	updated, _ = Update(updated, MsgToolPrewarmFailed{Tool: "amp", Err: errTestError("boom")})
 	if updated.ToolWarmupCompleted != 3 {
 		t.Fatalf("expected completed count to be 3 after failed message, got %d", updated.ToolWarmupCompleted)
 	}

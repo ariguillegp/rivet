@@ -19,7 +19,7 @@ func TestCreateWorktreeFailsWithoutGitRepo(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when no .git exists")
 	}
-	if err.Error() != "Project has no repository. Create a project first." {
+	if err.Error() != "project has no repository; create a project first" {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -258,7 +258,7 @@ func TestScanDirsFindsGitProjects(t *testing.T) {
 	projectPath := filepath.Join(root, "repo")
 	initRepo(t, projectPath)
 
-	_ = os.MkdirAll(filepath.Join(root, "plain-dir"), 0755)
+	_ = os.MkdirAll(filepath.Join(root, "plain-dir"), 0o755)
 
 	fs := &OSFilesystem{}
 	entries, err := fs.ScanDirs([]string{root}, 2)
@@ -284,7 +284,7 @@ func TestScanDirsStopsAtProject(t *testing.T) {
 	initRepo(t, projectPath)
 
 	nestedPath := filepath.Join(projectPath, "nested")
-	if err := os.MkdirAll(filepath.Join(nestedPath, ".git"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(nestedPath, ".git"), 0o755); err != nil {
 		t.Fatalf("unexpected error creating nested git marker: %v", err)
 	}
 
@@ -349,7 +349,7 @@ func TestDeleteWorktreeRejectsUnregisteredWorktree(t *testing.T) {
 	projectPrefix := projectWorktreePrefix(projectPath)
 	worktreePath := filepath.Join(rivetDir, projectPrefix+"--fake-branch")
 
-	if err := os.MkdirAll(worktreePath, 0755); err != nil {
+	if err := os.MkdirAll(worktreePath, 0o755); err != nil {
 		t.Fatalf("unexpected error creating unregistered worktree: %v", err)
 	}
 	t.Cleanup(func() {

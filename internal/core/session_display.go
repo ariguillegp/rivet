@@ -53,7 +53,7 @@ func SessionWorktreeName(dirPath string) string {
 	return dirPath
 }
 
-func SessionWorktreeProjectBranch(worktreeName string) (string, string) {
+func SessionWorktreeProjectBranch(worktreeName string) (project, branch string) {
 	worktreeName = strings.TrimSpace(worktreeName)
 	if worktreeName == "" {
 		return "", ""
@@ -64,8 +64,8 @@ func SessionWorktreeProjectBranch(worktreeName string) (string, string) {
 		return worktreeName, ""
 	}
 
-	project := strings.TrimSpace(worktreeName[:idx])
-	branch := strings.TrimSpace(worktreeName[idx+len("--"):])
+	project = strings.TrimSpace(worktreeName[:idx])
+	branch = strings.TrimSpace(worktreeName[idx+len("--"):])
 	return project, branch
 }
 
@@ -79,7 +79,7 @@ func trimProjectHash(project string) string {
 		return project
 	}
 	suffix := project[sepIdx+1:]
-	for i := 0; i < len(suffix); i++ {
+	for i := range len(suffix) {
 		ch := suffix[i]
 		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
 			return project

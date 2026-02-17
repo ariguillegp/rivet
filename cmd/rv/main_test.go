@@ -117,7 +117,7 @@ func TestResolveSessionSpecRejectsUnsupportedTool(t *testing.T) {
 func TestResolveSessionSpecResolvesNamedProjectAndWorktree(t *testing.T) {
 	root := t.TempDir()
 	projectPath := filepath.Join(root, "demo")
-	if err := os.MkdirAll(projectPath, 0755); err != nil {
+	if err := os.MkdirAll(projectPath, 0o755); err != nil {
 		t.Fatalf("failed to create project path: %v", err)
 	}
 
@@ -236,7 +236,7 @@ func TestLooksLikePathDetectsPathForms(t *testing.T) {
 func TestExistsReturnsTrueOnlyForDirectories(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "file.txt")
-	if err := os.WriteFile(file, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
 		t.Fatalf("failed to write file: %v", err)
 	}
 
@@ -303,7 +303,7 @@ func TestReturnToPreviousSessionSwitchesClientInsideTmux(t *testing.T) {
 
 func writeExecutable(t *testing.T, path, content string) {
 	t.Helper()
-	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		t.Fatalf("failed to write executable %s: %v", path, err)
 	}
 }

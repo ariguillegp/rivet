@@ -16,7 +16,7 @@ func TestKillSessionIgnoresNoServerRunning(t *testing.T) {
 		"echo \"no server running on /tmp/tmux-0/default\" 1>&2\n" +
 		"exit 1\n"
 
-	if err := os.WriteFile(tmuxPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("failed to write tmux stub: %v", err)
 	}
 
@@ -39,7 +39,7 @@ func TestKillSessionIgnoresMissingSession(t *testing.T) {
 		"echo \"can't find session\" 1>&2\n" +
 		"exit 1\n"
 
-	if err := os.WriteFile(tmuxPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("failed to write tmux stub: %v", err)
 	}
 
@@ -62,7 +62,7 @@ func TestListSessionsIgnoresNoServerRunning(t *testing.T) {
 		"echo \"no server running on /tmp/tmux-0/default\" 1>&2\n" +
 		"exit 1\n"
 
-	if err := os.WriteFile(tmuxPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("failed to write tmux stub: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestListSessionsIncludesLastActiveWhenAvailable(t *testing.T) {
 		"echo \"demo\t/tmp/projects/rivet/main\t1735689600\"\n" +
 		"exit 0\n"
 
-	if err := os.WriteFile(tmuxPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("failed to write tmux stub: %v", err)
 	}
 
@@ -134,10 +134,10 @@ fi
 exit 1
 `
 
-	if err := os.WriteFile(tmuxPath, []byte(tmuxScript), 0755); err != nil {
+	if err := os.WriteFile(tmuxPath, []byte(tmuxScript), 0o755); err != nil {
 		t.Fatalf("failed to write tmux stub: %v", err)
 	}
-	if err := os.WriteFile(gitPath, []byte(gitScript), 0755); err != nil {
+	if err := os.WriteFile(gitPath, []byte(gitScript), 0o755); err != nil {
 		t.Fatalf("failed to write git stub: %v", err)
 	}
 

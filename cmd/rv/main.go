@@ -106,7 +106,7 @@ func returnToPreviousSession() error {
 	return cmd.Run()
 }
 
-func resolveSessionSpec(fs ports.Filesystem, roots []string, project, worktree, tool string, createProject bool, detach bool) (core.SessionSpec, error) {
+func resolveSessionSpec(fs ports.Filesystem, roots []string, project, worktree, tool string, createProject, detach bool) (core.SessionSpec, error) {
 	if project == "" {
 		return core.SessionSpec{}, errors.New("--project is required")
 	}

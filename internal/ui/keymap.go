@@ -115,10 +115,10 @@ func (k keyMap) fullHelp(mode core.Mode) [][]key.Binding {
 }
 
 func (k keyMap) binding(b key.Binding, desc string) key.Binding {
-	copy := b
-	h := copy.Help()
-	copy.SetHelp(h.Key, desc)
-	return copy
+	clone := b
+	h := clone.Help()
+	clone.SetHelp(h.Key, desc)
+	return clone
 }
 
 func (m Model) shortHelpView() string {

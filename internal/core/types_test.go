@@ -24,6 +24,7 @@ func TestIsSupportedTool_DefaultTools(t *testing.T) {
 		t.Error("IsSupportedTool(nonexistent) = true, want false")
 	}
 }
+
 func TestSupportedTools_ReturnsCopy(t *testing.T) {
 	got := SupportedTools()
 	got[0] = "modified"

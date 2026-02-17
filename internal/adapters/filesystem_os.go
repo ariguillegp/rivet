@@ -104,7 +104,7 @@ func expandPath(path string) string {
 
 func (f *OSFilesystem) CreateProject(path string) (string, error) {
 	projectPath := expandPath(path)
-	if err := os.MkdirAll(projectPath, 0755); err != nil {
+	if err := os.MkdirAll(projectPath, 0o755); err != nil {
 		return "", err
 	}
 
@@ -126,7 +126,7 @@ func (f *OSFilesystem) CreateProject(path string) (string, error) {
 func (f *OSFilesystem) DeleteProject(projectPath string) error {
 	projectPath = expandPath(projectPath)
 	if !hasGitMarker(projectPath) {
-		return fmt.Errorf("Project has no repository. Create a project first.")
+		return fmt.Errorf("project has no repository; create a project first")
 	}
 
 	_ = f.PruneWorktrees(projectPath)
@@ -148,20 +148,17 @@ func (f *OSFilesystem) DeleteProject(projectPath string) error {
 		cmd := gitCommand(projectPath, "worktree", "remove", "--force", cleanPath)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("%s: %s", err, string(output))
+			return fmt.Errorf("%w: %s", err, string(output))
 		}
 	}
 
-	if err := os.RemoveAll(projectClean); err != nil {
-		return err
-	}
-	return nil
+	return os.RemoveAll(projectClean)
 }
 
 func (f *OSFilesystem) ListWorktreePaths(projectPath string) ([]string, error) {
 	projectPath = expandPath(projectPath)
 	if !hasGitMarker(projectPath) {
-		return nil, fmt.Errorf("Project has no repository. Create a project first.")
+		return nil, fmt.Errorf("project has no repository; create a project first")
 	}
 
 	cmd := gitCommand(projectPath, "worktree", "list", "--porcelain")
@@ -246,7 +243,7 @@ func (f *OSFilesystem) ListWorktrees(projectPath string) (core.WorktreeListing, 
 func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, error) {
 	projectPath = expandPath(projectPath)
 	if !hasGitMarker(projectPath) {
-		return "", fmt.Errorf("Project has no repository. Create a project first.")
+		return "", fmt.Errorf("project has no repository; create a project first")
 	}
 
 	cleanBranch := strings.TrimSpace(branchName)
@@ -275,16 +272,16 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 	}
 
 	rivetDir := expandPath(rivetWorktreesDir)
-	if err := os.MkdirAll(rivetDir, 0755); err != nil {
+	if err := os.MkdirAll(rivetDir, 0o755); err != nil {
 		return "", err
 	}
 	worktreePath := filepath.Join(rivetDir, worktreeDir)
 
-	hasCommit, _ := repoHasCommit(projectPath)
+	hasCommit := repoHasCommit(projectPath)
 	if !hasCommit {
 		cmd := gitCommand(projectPath, "worktree", "add", "--orphan", "-b", cleanBranch, worktreePath)
 		if output, err := cmd.CombinedOutput(); err != nil {
-			return "", fmt.Errorf("%s: %s", err, string(output))
+			return "", fmt.Errorf("%w: %s", err, string(output))
 		}
 		return worktreePath, nil
 	}
@@ -301,7 +298,7 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 			if bytes.Contains(output2, []byte("already exists")) && bytes.Contains(output2, []byte(cleanBranch)) {
 				return "", core.WorktreeExistsError{Branch: cleanBranch}
 			}
-			return "", fmt.Errorf("%s: %s", err2, string(output2))
+			return "", fmt.Errorf("%w: %s", err2, string(output2))
 		}
 		return worktreePath, nil
 	}
@@ -324,7 +321,7 @@ func (f *OSFilesystem) PruneWorktrees(projectPath string) error {
 func (f *OSFilesystem) DeleteWorktree(projectPath, worktreePath string) error {
 	projectPath = expandPath(projectPath)
 	if !hasGitMarker(projectPath) {
-		return fmt.Errorf("Project has no repository. Create a project first.")
+		return fmt.Errorf("project has no repository; create a project first")
 	}
 
 	cleanPath := expandPath(worktreePath)
@@ -347,7 +344,7 @@ func (f *OSFilesystem) DeleteWorktree(projectPath, worktreePath string) error {
 	cmd := gitCommand(projectPath, "worktree", "remove", "--force", cleanPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s: %s", err, string(output))
+		return fmt.Errorf("%w: %s", err, string(output))
 	}
 	return nil
 }
@@ -377,13 +374,12 @@ func gitCommand(repoPath string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func repoHasCommit(repoPath string) (bool, error) {
+func repoHasCommit(repoPath string) bool {
 	cmd := gitCommand(repoPath, "rev-parse", "--verify", "HEAD")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		_ = output
-		return false, nil
+	if err := cmd.Run(); err != nil {
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func projectWorktreePrefix(projectPath string) string {

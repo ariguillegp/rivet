@@ -165,7 +165,7 @@ func TestProjectDeleteConfirmEscCancels(t *testing.T) {
 func TestMsgWorktreeDeletedErrorSetsModeError(t *testing.T) {
 	base := Model{Mode: ModeWorktreeDeleteConfirm}
 
-	updated, effects := Update(base, MsgWorktreeDeleted{Err: errTest("boom")})
+	updated, effects := Update(base, MsgWorktreeDeleted{Err: errTestError("boom")})
 	if updated.Mode != ModeError {
 		t.Fatalf("expected error mode, got %v", updated.Mode)
 	}
@@ -239,9 +239,9 @@ func TestMsgProjectDeletedReloadsProjects(t *testing.T) {
 	}
 }
 
-type errTest string
+type errTestError string
 
-func (e errTest) Error() string {
+func (e errTestError) Error() string {
 	return string(e)
 }
 
