@@ -5,6 +5,7 @@ run:
 linters:
   disable-all: true
   enable:
+    # --- existing baseline (vet / static-analysis / formatting) ---
     - errcheck
     - gosimple
     - govet
@@ -13,6 +14,69 @@ linters:
     - typecheck
     - unused
     - gofmt
+
+    # --- best-practice & correctness ---
+    - errorlint       # correct use of errors.Is / errors.As / %w wrapping
+    - errname         # sentinel errors prefixed Err*, error types suffixed *Error
+    - nilerr          # returning nil when err != nil
+    - bodyclose       # unclosed HTTP response bodies
+    - copyloopvar     # loop variable capture bugs (Go <1.22 compat)
+    - durationcheck   # wrong duration arithmetic (e.g. time.Second * time.Second)
+    #- exhaustive     # missing cases in enum switch statements (disabled: state-machine switches use default)
+    - fatcontext       # context.WithValue / WithCancel inside loops
+    - noctx           # HTTP requests without context.Context
+    - intrange        # for loops that should use integer range (Go 1.22+)
+
+    # --- style & clarity ---
+    - gofumpt         # stricter superset of gofmt (consistent grouping, spacing)
+    - misspell        # typos in comments, strings, and identifiers
+    - nakedret        # naked returns in long functions hurt readability
+    - gocritic        # broad set of style, performance and correctness checks
+    - revive          # drop-in golint replacement with configurable rules
+    - unconvert       # unnecessary type conversions
+    - unparam         # unused function parameters
+    - predeclared     # shadowing predeclared identifiers (e.g. len, cap, new)
+    - reassign        # reassigning top-level variables in other packages
+    - usestdlibvars   # use stdlib constants instead of magic strings (http.MethodGet, etc.)
+    - wastedassign    # assignments whose value is never read
+
+    # --- import hygiene ---
+    - goimports       # groups and sorts imports (stdlib | third-party | local)
+
+linters-settings:
+  nakedret:
+    max-func-lines: 20
+  exhaustive:
+    default-signifies-exhaustive: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam     # Bubble Tea requires value receivers on Model
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: range
+      - name: receiver-naming
+      - name: indent-error-flow
+      - name: superfluous-else
+      - name: unreachable-code
+      - name: redefines-builtin-id
+  goimports:
+    local-prefixes: github.com/ariguillegp/rivet
+  misspell:
+    locale: US
 
 issues:
   max-issues-per-linter: 0
