@@ -2,8 +2,6 @@
   <img src="assets/logo.png" width="200" alt="rivet logo">
 </p>
 
-# rivet
-
 A lightweight TUI to manage your fleet of agents across all your projects.
 
 ## Main Features at a Glance
