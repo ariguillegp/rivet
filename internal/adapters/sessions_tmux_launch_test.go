@@ -168,6 +168,61 @@ exit 0
 	}
 }
 
+func TestPrewarmSessionIgnoresDuplicateSessionRace(t *testing.T) {
+	tmpDir := t.TempDir()
+	logPath := filepath.Join(tmpDir, "tmux.log")
+	tmuxPath := filepath.Join(tmpDir, "tmux")
+	windowsPath := filepath.Join(tmpDir, "windows.state")
+	if err := os.WriteFile(windowsPath, []byte("amp\n"), 0o644); err != nil {
+		t.Fatalf("failed to write windows state: %v", err)
+	}
+	writeExecutable(t, tmuxPath, `#!/bin/sh
+echo "$@" >> "$TMUX_LOG"
+if [ "$1" = "has-session" ]; then
+  exit 1
+fi
+if [ "$1" = "new-session" ]; then
+  echo "duplicate session: $4" 1>&2
+  exit 1
+fi
+if [ "$1" = "list-windows" ]; then
+  cat "$TMUX_WINDOWS"
+  exit 0
+fi
+if [ "$1" = "new-window" ]; then
+  printf "amp\ncodex\n" > "$TMUX_WINDOWS"
+  exit 0
+fi
+exit 0
+`)
+
+	t.Setenv("TMUX_LOG", logPath)
+	t.Setenv("TMUX_WINDOWS", windowsPath)
+	t.Setenv("PATH", tmpDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	session := &TmuxSession{}
+	spec := core.SessionSpec{DirPath: "/tmp/project", Tool: "codex"}
+	created, err := session.PrewarmSession(spec)
+	if err != nil {
+		t.Fatalf("unexpected prewarm error: %v", err)
+	}
+	if !created {
+		t.Fatalf("expected created=true when fallback creates tool window")
+	}
+
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read tmux log: %v", err)
+	}
+	log := string(content)
+	if !strings.Contains(log, "new-session -d -s -tmp-project") {
+		t.Fatalf("expected attempted new-session, got log:\n%s", log)
+	}
+	if !strings.Contains(log, "new-window -d -t =-tmp-project -n codex") {
+		t.Fatalf("expected new-window fallback, got log:\n%s", log)
+	}
+}
+
 func TestAttachSessionUsesAttachOutsideTmux(t *testing.T) {
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "tmux.log")

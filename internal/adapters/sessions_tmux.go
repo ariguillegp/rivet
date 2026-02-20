@@ -255,9 +255,12 @@ func ensureToolWindow(sessionName, dirPath, tool string) (bool, error) {
 
 	if !sessionExists {
 		if err := createSessionWithToolWindow(sessionName, dirPath, tool); err != nil {
-			return false, err
+			if !isTmuxDuplicateSessionError(err) {
+				return false, err
+			}
+		} else {
+			return true, nil
 		}
-		return true, nil
 	}
 
 	if hasToolWindow(sessionName, tool) {
@@ -265,10 +268,21 @@ func ensureToolWindow(sessionName, dirPath, tool string) (bool, error) {
 	}
 
 	if err := createWindow(sessionName, dirPath, tool); err != nil {
+		if isTmuxDuplicateWindowError(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
 	return true, nil
+}
+
+func isTmuxDuplicateSessionError(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "duplicate session")
+}
+
+func isTmuxDuplicateWindowError(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "duplicate window")
 }
 
 func createSessionWithToolWindow(sessionName, dirPath, tool string) error {
