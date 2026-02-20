@@ -11,24 +11,25 @@ A lightweight TUI to manage your fleet of agents across all your projects.
 - Fast fuzzy filtering in every step (projects, workspaces, tools, and sessions).
 - Scans `~/Projects` (or provided roots) up to 2 levels deep, skipping hidden/common vendor directories.
 - Built-in tmux session switcher: press `ctrl+s` from the main screens to open **Active tmux sessions**, filter them, and press `enter` to attach.
-- Tool sessions are prewarmed in the background and reused if already running (warm-starts for `opencode`, `amp`, `claude`, and `codex`; `none` opens a shell).
+- In wide terminals, **Active tmux sessions** shows a table with `Project`, `Branch`, and `Last active`.
+- Workspace tmux sessions are prewarmed in the background and reused if already running. Each supported tool (`opencode`, `amp`, `claude`, `codex`, and `none`) is opened in its own tmux window inside the same workspace session.
 - Project/workspace lifecycle management in-app (create and delete with confirmation and cleanup). Worktree deletions are limited to rivet-managed worktrees under `~/.rivet/worktrees` (project root is protected).
 - Stale worktree references (from manually deleted directories) are automatically pruned whenever the worktree list is loaded, keeping the list accurate.
 - Keyboard-first UX with help modal (`?`), theme picker (`ctrl+t`), and a persistent help bar.
 - Optional non-interactive mode for launching sessions directly via CLI flags.
 
 ## Run agent tool in worktree (session caching)
-After selecting a project/worktree tuple, the program prewarms all supported tools in the background (creating tmux sessions if needed). Existing sessions are reused, and selecting `none` opens a shell immediately.
+After selecting a project/worktree tuple, the program prewarms one tmux session for that workspace (creating it if needed) and ensures a window exists for each supported tool. Existing workspace sessions are reused, and selecting `none` opens a shell window immediately.
 
 https://github.com/user-attachments/assets/e1905edd-01ad-441b-b12e-38f3e2395645
 
 ## Create/Delete worktree
-Deleting a worktree also kills any session using it. Only the project root and rivet-managed worktrees under `~/.rivet/worktrees` are listed, and the root worktree cannot be deleted from the UI.
+Deleting a worktree also kills the workspace tmux session using it (including its tool windows). Only the project root and rivet-managed worktrees under `~/.rivet/worktrees` are listed, and the root worktree cannot be deleted from the UI.
 
 https://github.com/user-attachments/assets/a6b2735a-20b2-49c9-ad0b-47e9e7349bdb
 
 ## Create/Delete project
-Deleting a project also kills any sessions using it.
+Deleting a project also kills its workspace tmux sessions (including their tool windows).
 
 https://github.com/user-attachments/assets/cefca0ef-3b09-402b-904a-78ca328d43a6
 
@@ -116,6 +117,8 @@ Open a session directly without the UI:
 
 ```bash
 rv --project my-project --worktree main --tool opencode [--detach]
+
+rv --project my-project --worktree main --tool amp [--detach]
 
 rv --project my-project --worktree main --tool claude [--detach]
 

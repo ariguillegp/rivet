@@ -4,11 +4,11 @@ This document explains **how rivet is organized and why**. It is intentionally b
 
 ## What rivet does
 
-`rivet` is a terminal UI + CLI launcher for project workspaces and tmux-backed tool sessions. It helps you:
+`rivet` is a terminal UI + CLI launcher for project workspaces and tmux-backed workspace sessions with per-tool windows. It helps you:
 
 1. discover/select a project,
 2. discover/create/delete worktrees,
-3. launch or switch to a tool session.
+3. launch a workspace session and switch to a tool window.
 
 The architecture optimizes for predictable behavior, testability, and low coupling between state logic and side effects.
 
