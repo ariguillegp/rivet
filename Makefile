@@ -1,4 +1,4 @@
-.PHONY: help validate validate-full fmt compile lint test-short test test-race build modcheck covercheck vulncheck deploy install
+.PHONY: help validate validate-full fmt compile lint test-short test test-race build modcheck covercheck vulncheck deploy install canary
 
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -111,3 +111,6 @@ install: ## Full setup + deploy
 	mkdir -p ~/Projects
 	mkdir -p ~/.rivet/worktrees
 	$(MAKE) deploy
+
+canary: ## Trigger CI workflow on current branch
+	gh workflow run ci.yml --ref $$(git branch --show-current)

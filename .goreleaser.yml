@@ -1,0 +1,38 @@
+version: 2
+
+project_name: rv
+
+before:
+  hooks:
+    - go mod download
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - binary: rv
+    main: ./cmd/rv
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github-native
