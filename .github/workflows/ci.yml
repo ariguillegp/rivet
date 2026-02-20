@@ -36,3 +36,45 @@ jobs:
 
       - name: Validate
         run: make -j ${{ inputs.make-target || 'validate' }}
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          go test -coverprofile=coverage.out ./... > /dev/null 2>&1 || true
+          if [ ! -f coverage.out ]; then exit 0; fi
+
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}')
+
+          {
+            echo "## 📊 Test Coverage: ${total}"
+            echo ""
+            echo "| Package | Coverage |"
+            echo "|---------|----------|"
+            go tool cover -func=coverage.out | awk '
+              /^total:/ { next }
+              {
+                split($1, parts, "/")
+                pkg = ""
+                for (i = 1; i < length(parts); i++) {
+                  if (pkg != "") pkg = pkg "/"
+                  pkg = pkg parts[i]
+                }
+                pct = $NF
+                gsub(/%/, "", pct)
+                v = pct + 0
+                count[pkg]++
+                sum[pkg] += v
+              }
+              END {
+                for (pkg in sum) {
+                  avg = sum[pkg] / count[pkg]
+                  if (avg >= 80) icon = "🟢"
+                  else if (avg >= 60) icon = "🟡"
+                  else icon = "🔴"
+                  printf "| `%s` | %s %.1f%% |\n", pkg, icon, avg
+                }
+              }
+            ' | sort
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          rm -f coverage.out
