@@ -275,8 +275,7 @@ func createSessionWithToolWindow(sessionName, dirPath, tool string) error {
 	shell, commandArgs := toolCommand(tool)
 	args := []string{"new-session", "-d", "-s", sessionName}
 	args = append(args, tmuxEnvArgs(tool)...)
-	args = append(args, "-n", tool)
-	args = append(args, "-c", dirPath, shell)
+	args = append(args, "-n", tool, "-c", dirPath, shell)
 	args = append(args, commandArgs...)
 	cmd := exec.Command("tmux", args...)
 	output, err := cmd.CombinedOutput()
@@ -293,7 +292,7 @@ func hasToolWindow(sessionName, tool string) bool {
 	if err != nil {
 		return false
 	}
-	for _, line := range strings.Split(string(output), "\n") {
+	for line := range strings.SplitSeq(string(output), "\n") {
 		if strings.TrimSpace(line) == tool {
 			return true
 		}
