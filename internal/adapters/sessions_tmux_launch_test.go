@@ -15,10 +15,26 @@ func TestOpenSessionDetachCreatesSessionWithoutAttach(t *testing.T) {
 	tmuxPath := filepath.Join(tmpDir, "tmux")
 	writeExecutable(t, tmuxPath, `#!/bin/sh
 echo "$@" >> "$TMUX_LOG"
+state="$TMUX_STATE"
 if [ "$1" = "has-session" ]; then
+  if [ -f "$state" ]; then
+    exit 0
+  fi
   exit 1
 fi
 if [ "$1" = "new-session" ]; then
+  touch "$state"
+  printf "amp\nopencode\nclaude\ncodex\nnone\n" > "$TMUX_WINDOWS"
+  exit 0
+fi
+if [ "$1" = "list-windows" ]; then
+  cat "$TMUX_WINDOWS"
+  exit 0
+fi
+if [ "$1" = "new-window" ]; then
+  exit 0
+fi
+if [ "$1" = "select-window" ]; then
   exit 0
 fi
 if [ "$1" = "attach-session" ] || [ "$1" = "switch-client" ]; then
@@ -29,6 +45,8 @@ exit 0
 `)
 
 	t.Setenv("TMUX_LOG", logPath)
+	t.Setenv("TMUX_STATE", filepath.Join(tmpDir, "session.state"))
+	t.Setenv("TMUX_WINDOWS", filepath.Join(tmpDir, "windows.state"))
 	t.Setenv("PATH", tmpDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TMUX", "")
 
@@ -43,11 +61,17 @@ exit 0
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "has-session -t =-tmp-project__amp") {
+	if !strings.Contains(log, "has-session -t =-tmp-project") {
 		t.Fatalf("expected has-session check, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "new-session -d -s -tmp-project__amp") {
+	if !strings.Contains(log, "new-session -d -s -tmp-project") {
 		t.Fatalf("expected new-session call, got log:\n%s", log)
+	}
+	if !strings.Contains(log, "list-windows -t =-tmp-project -F #{window_name}") {
+		t.Fatalf("expected window checks for workspace session, got log:\n%s", log)
+	}
+	if !strings.Contains(log, "select-window -t =-tmp-project:amp") {
+		t.Fatalf("expected selected window to be focused, got log:\n%s", log)
 	}
 	if strings.Contains(log, "attach-session") || strings.Contains(log, "switch-client") {
 		t.Fatalf("did not expect attach or switch in detach mode, got log:\n%s", log)
@@ -61,6 +85,13 @@ func TestOpenSessionInsideTmuxUsesSwitchClient(t *testing.T) {
 	writeExecutable(t, tmuxPath, `#!/bin/sh
 echo "$@" >> "$TMUX_LOG"
 if [ "$1" = "has-session" ]; then
+  exit 0
+fi
+if [ "$1" = "list-windows" ]; then
+  printf "amp\nopencode\nclaude\ncodex\nnone\n"
+  exit 0
+fi
+if [ "$1" = "select-window" ]; then
   exit 0
 fi
 if [ "$1" = "switch-client" ]; then
@@ -85,11 +116,14 @@ exit 1
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "has-session -t =-tmp-project__amp") {
+	if !strings.Contains(log, "has-session -t =-tmp-project") {
 		t.Fatalf("expected has-session check, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "switch-client -t =-tmp-project__amp") {
+	if !strings.Contains(log, "switch-client -t =-tmp-project") {
 		t.Fatalf("expected switch-client call, got log:\n%s", log)
+	}
+	if !strings.Contains(log, "select-window -t =-tmp-project:amp") {
+		t.Fatalf("expected selected window switch, got log:\n%s", log)
 	}
 	if strings.Contains(log, "attach-session") {
 		t.Fatalf("did not expect attach-session inside tmux, got log:\n%s", log)
@@ -105,8 +139,16 @@ echo "$@" >> "$TMUX_LOG"
 if [ "$1" = "has-session" ]; then
   exit 0
 fi
+if [ "$1" = "list-windows" ]; then
+  printf "amp\n"
+  exit 0
+fi
 if [ "$1" = "new-session" ]; then
   echo "new-session should not be called" 1>&2
+  exit 1
+fi
+if [ "$1" = "new-window" ]; then
+  echo "new-window should not be called" 1>&2
   exit 1
 fi
 exit 0
