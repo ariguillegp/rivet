@@ -84,7 +84,6 @@ func newSessionTable(styles Styles) table.Model {
 	columns := []table.Column{
 		{Title: "Project", Width: 40},
 		{Title: "Branch", Width: 22},
-		{Title: "Tool", Width: 12},
 		{Title: "Last active", Width: 16},
 	}
 	t := table.New(table.WithColumns(columns), table.WithRows(nil), table.WithFocused(true), table.WithHeight(defaultListSuggestions))
@@ -306,7 +305,6 @@ func (m *Model) syncSessionList() {
 		tableRows = append(tableRows, table.Row{
 			m.sessionProjectLabel(session),
 			m.sessionBranchLabel(session),
-			session.Tool,
 			sessionLastActiveLabel(session.LastActive),
 		})
 	}
