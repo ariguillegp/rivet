@@ -31,6 +31,29 @@ func TestKillSessionIgnoresNoServerRunning(t *testing.T) {
 	}
 }
 
+func TestKillSessionIgnoresMissingTmuxSocket(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmuxPath := filepath.Join(tmpDir, "tmux")
+
+	script := "#!/bin/sh\n" +
+		"echo \"error connecting to /tmp/tmux-1000/default (No such file or directory)\" 1>&2\n" +
+		"exit 1\n"
+
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("failed to write tmux stub: %v", err)
+	}
+
+	pathEnv := os.Getenv("PATH")
+	pathSep := string(os.PathListSeparator)
+	t.Setenv("PATH", tmpDir+pathSep+pathEnv)
+
+	session := &TmuxSession{}
+	spec := core.SessionSpec{DirPath: "/tmp/project", Tool: "amp"}
+	if err := session.KillSession(spec); err != nil {
+		t.Fatalf("expected no error when tmux socket is missing: %v", err)
+	}
+}
+
 func TestKillSessionIgnoresMissingSession(t *testing.T) {
 	tmpDir := t.TempDir()
 	tmuxPath := filepath.Join(tmpDir, "tmux")
@@ -77,6 +100,32 @@ func TestListSessionsIgnoresNoServerRunning(t *testing.T) {
 	}
 	if len(sessions) != 0 {
 		t.Fatalf("expected no sessions when tmux server is missing")
+	}
+}
+
+func TestListSessionsIgnoresMissingTmuxSocket(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmuxPath := filepath.Join(tmpDir, "tmux")
+
+	script := "#!/bin/sh\n" +
+		"echo \"error connecting to /tmp/tmux-1000/default (No such file or directory)\" 1>&2\n" +
+		"exit 1\n"
+
+	if err := os.WriteFile(tmuxPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("failed to write tmux stub: %v", err)
+	}
+
+	pathEnv := os.Getenv("PATH")
+	pathSep := string(os.PathListSeparator)
+	t.Setenv("PATH", tmpDir+pathSep+pathEnv)
+
+	session := &TmuxSession{}
+	sessions, err := session.ListSessions()
+	if err != nil {
+		t.Fatalf("expected no error when tmux socket is missing: %v", err)
+	}
+	if len(sessions) != 0 {
+		t.Fatalf("expected no sessions when tmux socket is missing")
 	}
 }
 

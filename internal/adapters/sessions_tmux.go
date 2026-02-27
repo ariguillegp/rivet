@@ -64,8 +64,8 @@ func (t *TmuxSession) KillSession(spec core.SessionSpec) error {
 
 	cmd := exec.Command("tmux", "kill-session", "-t", tmuxSessionTarget(sessionName))
 	if output, err := cmd.CombinedOutput(); err != nil {
-		if strings.Contains(string(output), "can't find session") ||
-			strings.Contains(string(output), "no server running") {
+		outputText := string(output)
+		if strings.Contains(outputText, "can't find session") || isTmuxServerUnavailable(outputText) {
 			return nil
 		}
 		return fmt.Errorf("failed to kill tmux session: %w (output: %s)", err, string(output))
@@ -77,7 +77,7 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 	cmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}\t#{session_path}\t#{session_last_attached}")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		if strings.Contains(string(output), "no server running") {
+		if isTmuxServerUnavailable(string(output)) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to list tmux sessions: %w (output: %s)", err, strings.TrimSpace(string(output)))
@@ -128,6 +128,16 @@ func (t *TmuxSession) ListSessions() ([]core.SessionInfo, error) {
 	}
 
 	return sessions, nil
+}
+
+func isTmuxServerUnavailable(output string) bool {
+	output = strings.ToLower(strings.TrimSpace(output))
+	if output == "" {
+		return false
+	}
+	return strings.Contains(output, "no server running") ||
+		strings.Contains(output, "failed to connect to server") ||
+		(strings.Contains(output, "error connecting to") && strings.Contains(output, "no such file or directory"))
 }
 
 func parseTmuxUnixTime(parts []string, idx int) time.Time {
