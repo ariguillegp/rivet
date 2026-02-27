@@ -21,22 +21,22 @@ A lightweight TUI to manage your fleet of agents across all your projects.
 ## Run agent tool in worktree (session caching)
 After selecting a project/worktree tuple, the program prewarms one tmux session for that workspace (creating it if needed) and ensures a window exists for each supported tool. Existing workspace sessions are reused, and selecting `none` opens a shell window immediately.
 
-https://github.com/user-attachments/assets/e1905edd-01ad-441b-b12e-38f3e2395645
+https://github.com/user-attachments/assets/424cf20e-86cb-4f13-83f1-dfe42d0bcf01
 
 ## Create/Delete worktree
 Deleting a worktree also kills the workspace tmux session using it (including its tool windows). Only the project root and rivet-managed worktrees under `~/.rivet/worktrees` are listed, and the root worktree cannot be deleted from the UI.
 
-https://github.com/user-attachments/assets/a6b2735a-20b2-49c9-ad0b-47e9e7349bdb
+https://github.com/user-attachments/assets/269449c1-9ffd-43cb-925e-ea1a2dcb5fe4
 
 ## Create/Delete project
 Deleting a project also kills its workspace tmux sessions (including their tool windows).
 
-https://github.com/user-attachments/assets/cefca0ef-3b09-402b-904a-78ca328d43a6
+https://github.com/user-attachments/assets/890bf029-02ef-4b64-8bdf-ffe7ba3b9592
 
 ## Help Menu
 Common actions are visible in the help bar at the bottom for better discoverability, but a more comprehensive help menu is one key press "?" away on every view.
 
-https://github.com/user-attachments/assets/e700db3d-d511-4ef9-886f-ad007691709d
+https://github.com/user-attachments/assets/7b25b6fe-40a9-4dcc-a692-1151d92a9ab4
 
 ## Prerequisites
 
