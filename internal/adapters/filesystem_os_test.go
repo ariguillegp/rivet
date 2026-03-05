@@ -81,6 +81,34 @@ func TestCreateWorktreeRejectsDuplicateBranch(t *testing.T) {
 	}
 }
 
+func TestCreateWorktreeFromExistingBranch(t *testing.T) {
+	projectPath := t.TempDir()
+	initRepo(t, projectPath)
+
+	cmd := exec.Command("git", "-C", projectPath, "branch", "feature/existing")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git branch failed: %v: %s", err, string(output))
+	}
+
+	fs := &OSFilesystem{}
+	worktreePath, err := fs.CreateWorktree(projectPath, "feature/existing")
+	if err != nil {
+		t.Fatalf("unexpected error creating worktree from existing branch: %v", err)
+	}
+	defer func() {
+		_ = fs.DeleteWorktree(projectPath, worktreePath)
+	}()
+
+	branchCmd := exec.Command("git", "-C", worktreePath, "branch", "--show-current")
+	branchOutput, err := branchCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git branch --show-current failed: %v: %s", err, string(branchOutput))
+	}
+	if strings.TrimSpace(string(branchOutput)) != "feature/existing" {
+		t.Fatalf("expected worktree branch feature/existing, got %q", strings.TrimSpace(string(branchOutput)))
+	}
+}
+
 func TestCreateWorktreeUsesUniquePrefixPerProject(t *testing.T) {
 	root := t.TempDir()
 	projectA := filepath.Join(root, "client", "api")

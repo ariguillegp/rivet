@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -286,7 +287,18 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 		return worktreePath, nil
 	}
 
-	cmd := gitCommand(projectPath, "worktree", "add", "-b", cleanBranch, worktreePath)
+	branchExists, err := localBranchExists(projectPath, cleanBranch)
+	if err != nil {
+		return "", err
+	}
+
+	args := []string{"worktree", "add"}
+	if !branchExists {
+		args = append(args, "-b", cleanBranch)
+	}
+	args = append(args, worktreePath, cleanBranch)
+
+	cmd := gitCommand(projectPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if bytes.Contains(output, []byte("already exists")) && bytes.Contains(output, []byte(cleanBranch)) {
@@ -305,6 +317,19 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 	_ = output
 
 	return worktreePath, nil
+}
+
+func localBranchExists(repoPath, branchName string) (bool, error) {
+	cmd := gitCommand(repoPath, "show-ref", "--verify", "--quiet", fmt.Sprintf("refs/heads/%s", branchName))
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (f *OSFilesystem) PruneWorktrees(projectPath string) error {
