@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "43ac727373fb6dd722ac9484a7b4b38cb62b4a19",
+  "prompts": {
+    "d2184e52241dbdc8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d3b58-148f-7f53-9b05-3c5cbd06ae74",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 112,
+      "total_deletions": 15,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
