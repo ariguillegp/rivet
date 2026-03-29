@@ -304,49 +304,94 @@ func TestDeleteWorktreeCmdStopsOnSessionKillError(t *testing.T) {
 	}
 }
 
-func TestPrewarmAllToolsCmdReturnsMessagesForCreatedExistingAndFailed(t *testing.T) {
+func TestPrepareSessionCmdReturnsStartedMessageWhenCreated(t *testing.T) {
 	sessions := &fakeSessionManager{
 		prewarmFn: func(spec core.SessionSpec) (bool, error) {
-			switch spec.Tool {
-			case "amp":
-				return true, nil
-			case "codex":
-				return false, nil
-			default:
-				return false, errors.New("prewarm failed")
-			}
+			return true, nil
 		},
 	}
 	m := New(nil, &fakeFilesystem{}, sessions)
 
-	cmd := m.prewarmAllToolsCmd("/projects/demo/main", []string{"amp", "codex", "claude"})
-	msgs := runCmd(cmd)
-	if len(msgs) != 3 {
-		t.Fatalf("expected three messages, got %d", len(msgs))
+	msg := m.prepareSessionCmd(core.SessionSpec{DirPath: "/projects/demo/main", Tool: "amp"})()
+	started, ok := msg.(core.MsgToolPrewarmStarted)
+	if !ok {
+		t.Fatalf("expected MsgToolPrewarmStarted, got %T", msg)
 	}
-
-	seenStarted := false
-	seenExisting := false
-	seenFailed := false
-	for _, msg := range msgs {
-		switch typed := msg.(type) {
-		case core.MsgToolPrewarmStarted:
-			seenStarted = typed.Tool == "amp" && !typed.StartedAt.IsZero()
-		case core.MsgToolPrewarmExisting:
-			seenExisting = typed.Tool == "codex"
-		case core.MsgToolPrewarmFailed:
-			seenFailed = typed.Tool == "claude" && typed.Err != nil
-		}
+	if started.Tool != "amp" || started.StartedAt.IsZero() {
+		t.Fatalf("unexpected started payload: %+v", started)
 	}
-	if !seenStarted || !seenExisting || !seenFailed {
-		t.Fatalf("expected started/existing/failed messages, got %#v", msgs)
+	if len(sessions.prewarmCalls) != 1 {
+		t.Fatalf("expected one prewarm call, got %d", len(sessions.prewarmCalls))
 	}
 }
 
-func TestPrewarmAllToolsCmdReturnsNilWithoutSessions(t *testing.T) {
+func TestPrepareSessionCmdReturnsExistingMessageWhenReady(t *testing.T) {
+	sessions := &fakeSessionManager{
+		prewarmFn: func(spec core.SessionSpec) (bool, error) {
+			return false, nil
+		},
+	}
+	m := New(nil, &fakeFilesystem{}, sessions)
+
+	msg := m.prepareSessionCmd(core.SessionSpec{DirPath: "/projects/demo/main", Tool: "codex"})()
+	existing, ok := msg.(core.MsgToolPrewarmExisting)
+	if !ok {
+		t.Fatalf("expected MsgToolPrewarmExisting, got %T", msg)
+	}
+	if existing.Tool != "codex" {
+		t.Fatalf("unexpected existing payload: %+v", existing)
+	}
+}
+
+func TestPrepareSessionCmdReturnsStartedMessageWhenWindowExistsButWarmupIsStillRunning(t *testing.T) {
+	sessions := &fakeSessionManager{
+		prewarmFn: func(spec core.SessionSpec) (bool, error) {
+			return false, nil
+		},
+	}
+	m := New(nil, &fakeFilesystem{}, sessions)
+	startedAt := time.Now().Add(-(core.ToolWarmupDelay("opencode") / 2))
+	m.core.ToolWarmStart = map[string]time.Time{
+		"opencode": startedAt,
+	}
+
+	msg := m.prepareSessionCmd(core.SessionSpec{DirPath: "/projects/demo/main", Tool: "opencode"})()
+	started, ok := msg.(core.MsgToolPrewarmStarted)
+	if !ok {
+		t.Fatalf("expected MsgToolPrewarmStarted, got %T", msg)
+	}
+	if !started.StartedAt.Equal(startedAt) {
+		t.Fatalf("expected existing warm start to be reused, got %v", started.StartedAt)
+	}
+}
+
+func TestPrepareSessionCmdReturnsExistingMessageWhenWarmupAlreadyElapsed(t *testing.T) {
+	sessions := &fakeSessionManager{
+		prewarmFn: func(spec core.SessionSpec) (bool, error) {
+			return false, nil
+		},
+	}
+	m := New(nil, &fakeFilesystem{}, sessions)
+	m.core.ToolWarmStart = map[string]time.Time{
+		"opencode": time.Now().Add(-core.ToolWarmupDelay("opencode") - time.Second),
+	}
+
+	msg := m.prepareSessionCmd(core.SessionSpec{DirPath: "/projects/demo/main", Tool: "opencode"})()
+	if _, ok := msg.(core.MsgToolPrewarmExisting); !ok {
+		t.Fatalf("expected MsgToolPrewarmExisting after elapsed warmup, got %T", msg)
+	}
+}
+
+func TestPrepareSessionCmdReturnsFailedMessageWithoutSessions(t *testing.T) {
 	m := New(nil, &fakeFilesystem{}, nil)
-	if cmd := m.prewarmAllToolsCmd("/projects/demo/main", []string{"amp"}); cmd != nil {
-		t.Fatalf("expected nil command when sessions manager is missing")
+
+	msg := m.prepareSessionCmd(core.SessionSpec{DirPath: "/projects/demo/main", Tool: "amp"})()
+	failed, ok := msg.(core.MsgToolPrewarmFailed)
+	if !ok {
+		t.Fatalf("expected MsgToolPrewarmFailed, got %T", msg)
+	}
+	if !errors.Is(failed.Err, errNoSessions) {
+		t.Fatalf("expected errNoSessions, got %v", failed.Err)
 	}
 }
 

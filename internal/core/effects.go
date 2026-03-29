@@ -52,12 +52,11 @@ type EffDeleteWorktree struct {
 
 func (EffDeleteWorktree) isEffect() {}
 
-type EffPrewarmAllTools struct {
-	DirPath string
-	Tools   []string
+type EffPrepareSession struct {
+	Spec SessionSpec
 }
 
-func (EffPrewarmAllTools) isEffect() {}
+func (EffPrepareSession) isEffect() {}
 
 type EffCheckToolReady struct {
 	Spec SessionSpec

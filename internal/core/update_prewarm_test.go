@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestEnterToolModeInitializesWarmupCounts(t *testing.T) {
+func TestEnterToolModeResetsWarmupStateWithoutEffects(t *testing.T) {
 	m := Model{
 		Mode:            ModeWorktree,
 		SelectedProject: "/projects/demo",
@@ -16,8 +16,8 @@ func TestEnterToolModeInitializesWarmupCounts(t *testing.T) {
 	if updated.Mode != ModeTool {
 		t.Fatalf("expected tool mode, got %v", updated.Mode)
 	}
-	if updated.ToolWarmupTotal != 2 {
-		t.Fatalf("expected 2 tools needing warmup, got %d", updated.ToolWarmupTotal)
+	if updated.ToolWarmupTotal != 0 {
+		t.Fatalf("expected warmup total to reset to 0, got %d", updated.ToolWarmupTotal)
 	}
 	if updated.ToolWarmupCompleted != 0 {
 		t.Fatalf("expected completed count to start at 0, got %d", updated.ToolWarmupCompleted)
@@ -26,15 +26,8 @@ func TestEnterToolModeInitializesWarmupCounts(t *testing.T) {
 		t.Fatalf("expected failed count to start at 0, got %d", updated.ToolWarmupFailed)
 	}
 
-	if len(effects) != 1 {
-		t.Fatalf("expected one effect, got %d", len(effects))
-	}
-	eff, ok := effects[0].(EffPrewarmAllTools)
-	if !ok {
-		t.Fatalf("expected EffPrewarmAllTools, got %T", effects[0])
-	}
-	if len(eff.Tools) != 2 {
-		t.Fatalf("expected 2 warmup tools in effect, got %d", len(eff.Tools))
+	if len(effects) != 0 {
+		t.Fatalf("expected no effects when entering tool mode, got %d", len(effects))
 	}
 }
 

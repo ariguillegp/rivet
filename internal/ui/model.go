@@ -459,7 +459,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if prevMode == core.ModeTool && m.core.Mode == core.ModeToolStarting {
 			m.toolInput.Blur()
-			m.beginToolStartingProgress(time.Now())
 		}
 		if prevMode == core.ModeToolStarting && m.core.Mode != core.ModeToolStarting {
 			if m.core.Mode == core.ModeTool {
@@ -638,6 +637,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case core.MsgToolPrewarmStarted:
 		coreModel, effects := core.Update(m.core, msg)
 		m.core = coreModel
+		if m.core.Mode == core.ModeToolStarting && m.core.PendingSpec != nil && m.core.PendingSpec.Tool == msg.Tool {
+			m.beginToolStartingProgress(time.Now())
+		}
 		m.syncLists()
 		cmd := m.runEffects(effects)
 		return m, cmd
@@ -744,8 +746,8 @@ func (m Model) runEffects(effects []core.Effect) tea.Cmd {
 			cmds = append(cmds, m.createWorktreeCmd(e.ProjectPath, e.BranchName))
 		case core.EffDeleteWorktree:
 			cmds = append(cmds, m.deleteWorktreeCmd(e.ProjectPath, e.WorktreePath))
-		case core.EffPrewarmAllTools:
-			cmds = append(cmds, m.prewarmAllToolsCmd(e.DirPath, e.Tools))
+		case core.EffPrepareSession:
+			cmds = append(cmds, m.prepareSessionCmd(e.Spec))
 		case core.EffCheckToolReady:
 			cmds = append(cmds, m.checkToolReadyCmd(e.Spec))
 		case core.EffListSessions:
@@ -841,28 +843,26 @@ func (m Model) deleteWorktreeCmd(projectPath, worktreePath string) tea.Cmd {
 	}
 }
 
-func (m Model) prewarmAllToolsCmd(dirPath string, tools []string) tea.Cmd {
-	if m.sessions == nil {
-		return nil
-	}
-	cmds := make([]tea.Cmd, 0, len(tools))
-	for _, tool := range tools {
-		spec := core.SessionSpec{DirPath: dirPath, Tool: tool, Detach: true}
-		cmds = append(cmds, func() tea.Msg {
-			created, err := m.sessions.PrewarmSession(spec)
-			if err != nil {
-				return core.MsgToolPrewarmFailed{Tool: tool, Err: err}
+func (m Model) prepareSessionCmd(spec core.SessionSpec) tea.Cmd {
+	return func() tea.Msg {
+		if m.sessions == nil {
+			return core.MsgToolPrewarmFailed{Tool: spec.Tool, Err: errNoSessions}
+		}
+
+		created, err := m.sessions.PrewarmSession(spec)
+		if err != nil {
+			return core.MsgToolPrewarmFailed{Tool: spec.Tool, Err: err}
+		}
+		if created {
+			return core.MsgToolPrewarmStarted{Tool: spec.Tool, StartedAt: time.Now()}
+		}
+		if start, ok := m.core.ToolWarmStart[spec.Tool]; ok && !start.IsZero() {
+			if time.Since(start) < core.ToolWarmupDelay(spec.Tool) {
+				return core.MsgToolPrewarmStarted{Tool: spec.Tool, StartedAt: start}
 			}
-			if created {
-				return core.MsgToolPrewarmStarted{Tool: tool, StartedAt: time.Now()}
-			}
-			return core.MsgToolPrewarmExisting{Tool: tool}
-		})
+		}
+		return core.MsgToolPrewarmExisting{Tool: spec.Tool}
 	}
-	if len(cmds) == 0 {
-		return nil
-	}
-	return tea.Batch(cmds...)
 }
 
 func (m Model) listSessionsCmd() tea.Cmd {

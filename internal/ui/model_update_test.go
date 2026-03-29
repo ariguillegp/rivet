@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -160,5 +161,23 @@ func TestUpdatePageDownMovesSelectionInBrowsing(t *testing.T) {
 	next := updated.(Model)
 	if next.core.SelectedIdx <= 0 {
 		t.Fatalf("expected pgdown to move selection forward, got %d", next.core.SelectedIdx)
+	}
+}
+
+func TestUpdateToolPrewarmStartedBeginsProgressAfterPreparation(t *testing.T) {
+	m := newTestModel()
+	spec := core.SessionSpec{DirPath: "/projects/demo/main", Tool: "opencode"}
+	m.core.Mode = core.ModeToolStarting
+	m.core.PendingSpec = &spec
+	m.toolStartingAt = time.Time{}
+	m.toolStartingDuration = 0
+
+	updated, _ := m.Update(core.MsgToolPrewarmStarted{Tool: "opencode", StartedAt: time.Now()})
+	next := updated.(Model)
+	if next.toolStartingAt.IsZero() {
+		t.Fatalf("expected tool starting progress to begin after prewarm starts")
+	}
+	if next.toolStartingDuration <= 0 {
+		t.Fatalf("expected a positive tool starting duration, got %v", next.toolStartingDuration)
 	}
 }

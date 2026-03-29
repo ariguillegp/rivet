@@ -142,6 +142,9 @@ func Update(m Model, msg Msg) (Model, []Effect) {
 		}
 		m.ToolWarmStart[msg.Tool] = msg.StartedAt
 		m.ToolWarmupCompleted++
+		if m.Mode == ModeToolStarting && m.PendingSpec != nil && m.PendingSpec.Tool == msg.Tool {
+			return m, []Effect{EffCheckToolReady{Spec: *m.PendingSpec}}
+		}
 		return m, nil
 
 	case MsgToolPrewarmExisting:
@@ -463,10 +466,13 @@ func handleToolKey(m Model, key KeyAction) (Model, []Effect, bool) {
 				m.ToolError = ""
 				return m, []Effect{EffOpenSession{Spec: spec}}, true
 			}
+			m.ToolWarmupTotal = 1
+			m.ToolWarmupCompleted = 0
+			m.ToolWarmupFailed = 0
 			m.PendingSpec = &spec
 			m.Mode = ModeToolStarting
 			m.ToolError = ""
-			return m, []Effect{EffCheckToolReady{Spec: spec}}, true
+			return m, []Effect{EffPrepareSession{Spec: spec}}, true
 		}
 		return m, nil, true
 	case KeyBack:
@@ -540,24 +546,10 @@ func enterToolMode(m Model) (Model, []Effect) {
 	m.PendingSpec = nil
 	m.ToolWarmStart = make(map[string]time.Time, len(m.Tools))
 	m.ToolErrors = make(map[string]string, len(m.Tools))
-	warmupTools := toolsNeedingWarmup(m.Tools)
-	m.ToolWarmupTotal = len(warmupTools)
+	m.ToolWarmupTotal = 0
 	m.ToolWarmupCompleted = 0
 	m.ToolWarmupFailed = 0
-	return m, []Effect{EffPrewarmAllTools{DirPath: m.SelectedWorktreePath, Tools: warmupTools}}
-}
-
-func toolsNeedingWarmup(tools []string) []string {
-	if len(tools) == 0 {
-		return nil
-	}
-	filtered := make([]string, 0, len(tools))
-	for _, tool := range tools {
-		if ToolNeedsWarmup(tool) {
-			filtered = append(filtered, tool)
-		}
-	}
-	return filtered
+	return m, nil
 }
 
 func enterSessionsMode(m Model) (Model, []Effect, bool) {

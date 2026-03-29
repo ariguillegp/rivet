@@ -16,6 +16,7 @@ func TestOpenSessionDetachCreatesSessionWithoutAttach(t *testing.T) {
 	writeExecutable(t, tmuxPath, `#!/bin/sh
 echo "$@" >> "$TMUX_LOG"
 state="$TMUX_STATE"
+windows="$TMUX_WINDOWS"
 if [ "$1" = "has-session" ]; then
   if [ -f "$state" ]; then
     exit 0
@@ -24,14 +25,34 @@ if [ "$1" = "has-session" ]; then
 fi
 if [ "$1" = "new-session" ]; then
   touch "$state"
-  printf "amp\nopencode\nclaude\ncodex\nnone\n" > "$TMUX_WINDOWS"
+  printf "0\tlazygit\n" > "$windows"
   exit 0
 fi
 if [ "$1" = "list-windows" ]; then
-  cat "$TMUX_WINDOWS"
+  fmt=""
+  for arg in "$@"; do
+    fmt="$arg"
+  done
+  if [ "$fmt" = "#{window_name}" ]; then
+    cut -f2 "$windows"
+  else
+    cat "$windows"
+  fi
   exit 0
 fi
 if [ "$1" = "new-window" ]; then
+  name=""
+  prev=""
+  for arg in "$@"; do
+    if [ "$prev" = "-n" ]; then
+      name="$arg"
+    fi
+    prev="$arg"
+  done
+  printf "%s\t%s\n" "$(wc -l < "$windows" | tr -d ' ')" "$name" >> "$windows"
+  exit 0
+fi
+if [ "$1" = "move-window" ] || [ "$1" = "kill-window" ]; then
   exit 0
 fi
 if [ "$1" = "select-window" ]; then
@@ -64,11 +85,14 @@ exit 0
 	if !strings.Contains(log, "has-session -t =-tmp-project") {
 		t.Fatalf("expected has-session check, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "new-session -d -s -tmp-project") {
-		t.Fatalf("expected new-session call, got log:\n%s", log)
+	if !strings.Contains(log, "new-session -d -s -tmp-project") || !strings.Contains(log, "-n lazygit") {
+		t.Fatalf("expected lazygit new-session call, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "list-windows -t =-tmp-project -F #{window_name}") {
-		t.Fatalf("expected window checks for workspace session, got log:\n%s", log)
+	if !strings.Contains(log, "new-window -d -t =-tmp-project -n amp") {
+		t.Fatalf("expected agent tool window creation, got log:\n%s", log)
+	}
+	if strings.Contains(log, "-n codex") || strings.Contains(log, "-n claude") || strings.Contains(log, "-n opencode") || strings.Contains(log, "-n none") {
+		t.Fatalf("did not expect extra tool windows, got log:\n%s", log)
 	}
 	if !strings.Contains(log, "select-window -t =-tmp-project:amp") {
 		t.Fatalf("expected selected window to be focused, got log:\n%s", log)
@@ -82,13 +106,28 @@ func TestOpenSessionInsideTmuxUsesSwitchClient(t *testing.T) {
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "tmux.log")
 	tmuxPath := filepath.Join(tmpDir, "tmux")
+	windowsPath := filepath.Join(tmpDir, "windows.state")
+	if err := os.WriteFile(windowsPath, []byte("0\tlazygit\n1\tamp\n"), 0o644); err != nil {
+		t.Fatalf("failed to write windows state: %v", err)
+	}
 	writeExecutable(t, tmuxPath, `#!/bin/sh
 echo "$@" >> "$TMUX_LOG"
 if [ "$1" = "has-session" ]; then
   exit 0
 fi
 if [ "$1" = "list-windows" ]; then
-  printf "amp\nopencode\nclaude\ncodex\nnone\n"
+  fmt=""
+  for arg in "$@"; do
+    fmt="$arg"
+  done
+  if [ "$fmt" = "#{window_name}" ]; then
+    cut -f2 "$TMUX_WINDOWS"
+  else
+    cat "$TMUX_WINDOWS"
+  fi
+  exit 0
+fi
+if [ "$1" = "move-window" ] || [ "$1" = "kill-window" ]; then
   exit 0
 fi
 if [ "$1" = "select-window" ]; then
@@ -102,6 +141,7 @@ exit 1
 `)
 
 	t.Setenv("TMUX_LOG", logPath)
+	t.Setenv("TMUX_WINDOWS", windowsPath)
 	t.Setenv("PATH", tmpDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TMUX", "1")
 
@@ -134,13 +174,25 @@ func TestPrewarmSessionReturnsFalseWhenSessionExists(t *testing.T) {
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "tmux.log")
 	tmuxPath := filepath.Join(tmpDir, "tmux")
+	windowsPath := filepath.Join(tmpDir, "windows.state")
+	if err := os.WriteFile(windowsPath, []byte("0\tlazygit\n1\tamp\n"), 0o644); err != nil {
+		t.Fatalf("failed to write windows state: %v", err)
+	}
 	writeExecutable(t, tmuxPath, `#!/bin/sh
 echo "$@" >> "$TMUX_LOG"
 if [ "$1" = "has-session" ]; then
   exit 0
 fi
 if [ "$1" = "list-windows" ]; then
-  printf "amp\n"
+  fmt=""
+  for arg in "$@"; do
+    fmt="$arg"
+  done
+  if [ "$fmt" = "#{window_name}" ]; then
+    cut -f2 "$TMUX_WINDOWS"
+  else
+    cat "$TMUX_WINDOWS"
+  fi
   exit 0
 fi
 if [ "$1" = "new-session" ]; then
@@ -151,10 +203,14 @@ if [ "$1" = "new-window" ]; then
   echo "new-window should not be called" 1>&2
   exit 1
 fi
+if [ "$1" = "move-window" ] || [ "$1" = "kill-window" ]; then
+  exit 0
+fi
 exit 0
 `)
 
 	t.Setenv("TMUX_LOG", logPath)
+	t.Setenv("TMUX_WINDOWS", windowsPath)
 	t.Setenv("PATH", tmpDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	session := &TmuxSession{}
@@ -168,12 +224,86 @@ exit 0
 	}
 }
 
+func TestOpenSessionAddsNewToolWindowWithoutDeletingExistingTools(t *testing.T) {
+	tmpDir := t.TempDir()
+	logPath := filepath.Join(tmpDir, "tmux.log")
+	tmuxPath := filepath.Join(tmpDir, "tmux")
+	windowsPath := filepath.Join(tmpDir, "windows.state")
+	if err := os.WriteFile(windowsPath, []byte("1\tlazygit\n2\tcodex\n"), 0o644); err != nil {
+		t.Fatalf("failed to write windows state: %v", err)
+	}
+	writeExecutable(t, tmuxPath, `#!/bin/sh
+echo "$@" >> "$TMUX_LOG"
+if [ "$1" = "has-session" ]; then
+  exit 0
+fi
+if [ "$1" = "list-windows" ]; then
+  fmt=""
+  for arg in "$@"; do
+    fmt="$arg"
+  done
+  if [ "$fmt" = "#{window_name}" ]; then
+    cut -f2 "$TMUX_WINDOWS"
+  else
+    cat "$TMUX_WINDOWS"
+  fi
+  exit 0
+fi
+if [ "$1" = "new-window" ]; then
+  name=""
+  prev=""
+  for arg in "$@"; do
+    if [ "$prev" = "-n" ]; then
+      name="$arg"
+    fi
+    prev="$arg"
+  done
+  printf "3\t%s\n" "$name" >> "$TMUX_WINDOWS"
+  exit 0
+fi
+if [ "$1" = "move-window" ] || [ "$1" = "select-window" ] || [ "$1" = "attach-session" ]; then
+  exit 0
+fi
+if [ "$1" = "kill-window" ]; then
+  echo "kill-window should not be called" 1>&2
+  exit 1
+fi
+exit 0
+`)
+
+	t.Setenv("TMUX_LOG", logPath)
+	t.Setenv("TMUX_WINDOWS", windowsPath)
+	t.Setenv("PATH", tmpDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TMUX", "")
+
+	session := &TmuxSession{}
+	spec := core.SessionSpec{DirPath: "/tmp/project", Tool: "claude"}
+	if err := session.OpenSession(spec); err != nil {
+		t.Fatalf("unexpected open-session error: %v", err)
+	}
+
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read tmux log: %v", err)
+	}
+	log := string(content)
+	if !strings.Contains(log, "new-window -d -t =-tmp-project -n claude") {
+		t.Fatalf("expected claude window to be created, got log:\n%s", log)
+	}
+	if strings.Contains(log, "kill-window") {
+		t.Fatalf("did not expect existing tool windows to be deleted, got log:\n%s", log)
+	}
+	if !strings.Contains(log, "select-window -t =-tmp-project:claude") {
+		t.Fatalf("expected new tool window to be focused, got log:\n%s", log)
+	}
+}
+
 func TestPrewarmSessionIgnoresDuplicateSessionRace(t *testing.T) {
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "tmux.log")
 	tmuxPath := filepath.Join(tmpDir, "tmux")
 	windowsPath := filepath.Join(tmpDir, "windows.state")
-	if err := os.WriteFile(windowsPath, []byte("amp\n"), 0o644); err != nil {
+	if err := os.WriteFile(windowsPath, []byte("0\tlazygit\n"), 0o644); err != nil {
 		t.Fatalf("failed to write windows state: %v", err)
 	}
 	writeExecutable(t, tmuxPath, `#!/bin/sh
@@ -186,11 +316,22 @@ if [ "$1" = "new-session" ]; then
   exit 1
 fi
 if [ "$1" = "list-windows" ]; then
-  cat "$TMUX_WINDOWS"
+  fmt=""
+  for arg in "$@"; do
+    fmt="$arg"
+  done
+  if [ "$fmt" = "#{window_name}" ]; then
+    cut -f2 "$TMUX_WINDOWS"
+  else
+    cat "$TMUX_WINDOWS"
+  fi
   exit 0
 fi
 if [ "$1" = "new-window" ]; then
-  printf "amp\ncodex\n" > "$TMUX_WINDOWS"
+  printf "0\tlazygit\n1\tcodex\n" > "$TMUX_WINDOWS"
+  exit 0
+fi
+if [ "$1" = "move-window" ] || [ "$1" = "kill-window" ]; then
   exit 0
 fi
 exit 0
@@ -220,6 +361,9 @@ exit 0
 	}
 	if !strings.Contains(log, "new-window -d -t =-tmp-project -n codex") {
 		t.Fatalf("expected new-window fallback, got log:\n%s", log)
+	}
+	if strings.Contains(log, "-n amp") {
+		t.Fatalf("did not expect extra tool window creation, got log:\n%s", log)
 	}
 }
 
@@ -346,6 +490,14 @@ func TestToolCommandAndTmuxEnvArgs(t *testing.T) {
 	}
 	if len(args) == 0 || args[len(args)-1] != "amp" {
 		t.Fatalf("expected warmup command args for amp, got %v", args)
+	}
+
+	shell, args = toolCommand(lazygitWindowName)
+	if shell != "/bin/bash" {
+		t.Fatalf("expected configured shell, got %q", shell)
+	}
+	if len(args) == 0 || args[len(args)-1] != lazygitWindowName {
+		t.Fatalf("expected lazygit command args, got %v", args)
 	}
 
 	envArgs := tmuxEnvArgs("opencode")

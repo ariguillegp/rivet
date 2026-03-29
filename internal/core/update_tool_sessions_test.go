@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestToolKeyEnterOpensSessionImmediatelyForNoneTool(t *testing.T) {
 	m := Model{
@@ -53,15 +56,46 @@ func TestToolKeyEnterWarmupToolTransitionsToStarting(t *testing.T) {
 	if updated.PendingSpec.Tool != "opencode" || updated.PendingSpec.DirPath != "/projects/demo/main" {
 		t.Fatalf("unexpected pending spec: %+v", *updated.PendingSpec)
 	}
+	if updated.ToolWarmupTotal != 1 || updated.ToolWarmupCompleted != 0 || updated.ToolWarmupFailed != 0 {
+		t.Fatalf("unexpected warmup counters: total=%d completed=%d failed=%d", updated.ToolWarmupTotal, updated.ToolWarmupCompleted, updated.ToolWarmupFailed)
+	}
 	if len(effects) != 1 {
 		t.Fatalf("expected one effect, got %d", len(effects))
 	}
-	eff, ok := effects[0].(EffCheckToolReady)
+	prepareEff, ok := effects[0].(EffPrepareSession)
+	if !ok {
+		t.Fatalf("expected EffPrepareSession, got %T", effects[0])
+	}
+	if prepareEff.Spec.Tool != "opencode" || prepareEff.Spec.DirPath != "/projects/demo/main" {
+		t.Fatalf("unexpected prepare spec: %+v", prepareEff.Spec)
+	}
+}
+
+func TestMsgToolPrewarmStartedSchedulesCheckReady(t *testing.T) {
+	pending := SessionSpec{DirPath: "/projects/demo/main", Tool: "opencode"}
+	m := Model{
+		Mode:          ModeToolStarting,
+		PendingSpec:   &pending,
+		ToolWarmStart: map[string]time.Time{},
+	}
+
+	startedAt := time.Now()
+	updated, effects := Update(m, MsgToolPrewarmStarted{Tool: "opencode", StartedAt: startedAt})
+	if updated.ToolWarmupCompleted != 1 {
+		t.Fatalf("expected completed count to be 1, got %d", updated.ToolWarmupCompleted)
+	}
+	if got := updated.ToolWarmStart["opencode"]; !got.Equal(startedAt) {
+		t.Fatalf("expected warm start to be recorded, got %v", got)
+	}
+	if len(effects) != 1 {
+		t.Fatalf("expected one effect, got %d", len(effects))
+	}
+	checkEff, ok := effects[0].(EffCheckToolReady)
 	if !ok {
 		t.Fatalf("expected EffCheckToolReady, got %T", effects[0])
 	}
-	if eff.Spec.Tool != "opencode" || eff.Spec.DirPath != "/projects/demo/main" {
-		t.Fatalf("unexpected check-ready spec: %+v", eff.Spec)
+	if checkEff.Spec.Tool != "opencode" || checkEff.Spec.DirPath != "/projects/demo/main" {
+		t.Fatalf("unexpected check-ready spec: %+v", checkEff.Spec)
 	}
 }
 

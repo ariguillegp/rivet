@@ -15,6 +15,8 @@ import (
 
 type TmuxSession struct{}
 
+const lazygitWindowName = "lazygit"
+
 func NewTmuxSession() *TmuxSession {
 	return &TmuxSession{}
 }
@@ -25,7 +27,7 @@ func (t *TmuxSession) OpenSession(spec core.SessionSpec) error {
 		return err
 	}
 
-	if err := ensureWorkspaceSession(sessionName, spec.DirPath, spec.Tool); err != nil {
+	if _, err := ensureWorkspaceLayout(sessionName, spec.DirPath, spec.Tool); err != nil {
 		return err
 	}
 
@@ -53,7 +55,7 @@ func (t *TmuxSession) PrewarmSession(spec core.SessionSpec) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return ensureToolWindow(sessionName, spec.DirPath, spec.Tool)
+	return ensureWorkspaceLayout(sessionName, spec.DirPath, spec.Tool)
 }
 
 func (t *TmuxSession) KillSession(spec core.SessionSpec) error {
@@ -237,34 +239,33 @@ func sessionNameFor(spec core.SessionSpec) (string, error) {
 	return sanitizeSessionPart(cleanPath, "worktree"), nil
 }
 
-func ensureWorkspaceSession(sessionName, dirPath, selectedTool string) error {
-	if _, err := ensureToolWindow(sessionName, dirPath, selectedTool); err != nil {
-		return err
+func ensureWorkspaceLayout(sessionName, dirPath, selectedTool string) (bool, error) {
+	createdLazygit, err := ensureSessionWindow(sessionName, dirPath, lazygitWindowName)
+	if err != nil {
+		return false, err
 	}
-
-	for _, tool := range core.SupportedTools() {
-		if tool == selectedTool {
-			continue
-		}
-		if _, err := ensureToolWindow(sessionName, dirPath, tool); err != nil {
-			return err
+	createdTool, err := ensureSessionWindow(sessionName, dirPath, selectedTool)
+	if err != nil {
+		return false, err
+	}
+	if createdLazygit && createdTool {
+		if err := initializeWorkspaceWindows(sessionName, selectedTool); err != nil {
+			return false, err
 		}
 	}
-
-	return nil
+	return createdTool, nil
 }
 
-func ensureToolWindow(sessionName, dirPath, tool string) (bool, error) {
-	tool = strings.TrimSpace(tool)
-	if tool == "" {
-		return false, fmt.Errorf("session tool is required")
+func ensureSessionWindow(sessionName, dirPath, windowName string) (bool, error) {
+	windowName = strings.TrimSpace(windowName)
+	if windowName == "" {
+		return false, fmt.Errorf("session window is required")
 	}
 
-	check := exec.Command("tmux", "has-session", "-t", tmuxSessionTarget(sessionName))
-	sessionExists := check.Run() == nil
+	sessionExists := hasSession(sessionName)
 
 	if !sessionExists {
-		if err := createSessionWithToolWindow(sessionName, dirPath, tool); err != nil {
+		if err := createSessionWithWindow(sessionName, dirPath, windowName); err != nil {
 			if !isTmuxDuplicateSessionError(err) {
 				return false, err
 			}
@@ -273,11 +274,11 @@ func ensureToolWindow(sessionName, dirPath, tool string) (bool, error) {
 		}
 	}
 
-	if hasToolWindow(sessionName, tool) {
+	if hasWindow(sessionName, windowName) {
 		return false, nil
 	}
 
-	if err := createWindow(sessionName, dirPath, tool); err != nil {
+	if err := createWindow(sessionName, dirPath, windowName); err != nil {
 		if isTmuxDuplicateWindowError(err) {
 			return false, nil
 		}
@@ -285,6 +286,11 @@ func ensureToolWindow(sessionName, dirPath, tool string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func hasSession(sessionName string) bool {
+	check := exec.Command("tmux", "has-session", "-t", tmuxSessionTarget(sessionName))
+	return check.Run() == nil
 }
 
 func isTmuxDuplicateSessionError(err error) bool {
@@ -295,11 +301,11 @@ func isTmuxDuplicateWindowError(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "duplicate window")
 }
 
-func createSessionWithToolWindow(sessionName, dirPath, tool string) error {
-	shell, commandArgs := toolCommand(tool)
+func createSessionWithWindow(sessionName, dirPath, windowName string) error {
+	shell, commandArgs := toolCommand(windowName)
 	args := []string{"new-session", "-d", "-s", sessionName}
-	args = append(args, tmuxEnvArgs(tool)...)
-	args = append(args, "-n", tool, "-c", dirPath, shell)
+	args = append(args, tmuxEnvArgs(windowName)...)
+	args = append(args, "-n", windowName, "-c", dirPath, shell)
 	args = append(args, commandArgs...)
 	cmd := exec.Command("tmux", args...)
 	output, err := cmd.CombinedOutput()
@@ -309,26 +315,24 @@ func createSessionWithToolWindow(sessionName, dirPath, tool string) error {
 	return nil
 }
 
-func hasToolWindow(sessionName, tool string) bool {
-	target := tmuxSessionTarget(sessionName) + ":" + tool
+func hasWindow(sessionName, windowName string) bool {
 	check := exec.Command("tmux", "list-windows", "-t", tmuxSessionTarget(sessionName), "-F", "#{window_name}")
 	output, err := check.Output()
 	if err != nil {
 		return false
 	}
 	for line := range strings.SplitSeq(string(output), "\n") {
-		if strings.TrimSpace(line) == tool {
+		if strings.TrimSpace(line) == windowName {
 			return true
 		}
 	}
-	check = exec.Command("tmux", "has-session", "-t", target)
-	return check.Run() == nil
+	return false
 }
 
-func createWindow(sessionName, dirPath, tool string) error {
-	shell, commandArgs := toolCommand(tool)
-	args := []string{"new-window", "-d", "-t", tmuxSessionTarget(sessionName), "-n", tool}
-	args = append(args, tmuxEnvArgs(tool)...)
+func createWindow(sessionName, dirPath, windowName string) error {
+	shell, commandArgs := toolCommand(windowName)
+	args := []string{"new-window", "-d", "-t", tmuxSessionTarget(sessionName), "-n", windowName}
+	args = append(args, tmuxEnvArgs(windowName)...)
 	args = append(args, "-c", dirPath, shell)
 	args = append(args, commandArgs...)
 	cmd := exec.Command("tmux", args...)
@@ -344,6 +348,36 @@ func selectWindow(sessionName, tool string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to select tmux window: %w (output: %s)", err, string(output))
+	}
+	return nil
+}
+
+// initializeWorkspaceWindows moves lazygit and the selected tool to indices 1
+// and 2. Tmux disallows moves that collide with existing indices, so both
+// windows are parked at high temporary indices first to free the low slots.
+func initializeWorkspaceWindows(sessionName, selectedTool string) error {
+	if err := moveWindow(sessionName, lazygitWindowName, 900); err != nil {
+		return err
+	}
+	if err := moveWindow(sessionName, selectedTool, 901); err != nil {
+		return err
+	}
+	if err := moveWindow(sessionName, lazygitWindowName, 1); err != nil {
+		return err
+	}
+	return moveWindow(sessionName, selectedTool, 2)
+}
+
+func moveWindow(sessionName, windowName string, index int) error {
+	cmd := exec.Command(
+		"tmux",
+		"move-window",
+		"-s", tmuxSessionTarget(sessionName)+":"+windowName,
+		"-t", tmuxSessionTarget(sessionName)+":"+strconv.Itoa(index),
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to move tmux window: %w (output: %s)", err, string(output))
 	}
 	return nil
 }
@@ -390,7 +424,7 @@ func toolCommand(tool string) (shell string, args []string) {
 	if strings.TrimSpace(shell) == "" {
 		shell = "/bin/sh"
 	}
-	if !core.ToolNeedsWarmup(tool) {
+	if tool != lazygitWindowName && !core.ToolNeedsWarmup(tool) {
 		return shell, nil
 	}
 	return shell, []string{"-c", `"$1"; exec "$0"`, shell, tool}
