@@ -18,25 +18,9 @@ A lightweight TUI to manage your fleet of agents across all your projects.
 - Keyboard-first UX with help modal (`?`), theme picker (`ctrl+t`), and a persistent help bar.
 - Optional non-interactive mode for launching sessions directly via CLI flags.
 
-## Run agent tool in worktree (session caching)
-After selecting a project/worktree/tool, the program prewarms one tmux session for that workspace (creating it if needed), ensures a `lazygit` window exists, and creates the selected tool window if needed. Existing workspace sessions are reused, and selecting `none` opens a shell window immediately.
+## Demo
 
-https://github.com/user-attachments/assets/424cf20e-86cb-4f13-83f1-dfe42d0bcf01
-
-## Create/Delete worktree
-Deleting a worktree also kills the workspace tmux session using it (including its tool windows). Only the project root and rivet-managed worktrees under `~/.rivet/worktrees` are listed, and the root worktree cannot be deleted from the UI.
-
-https://github.com/user-attachments/assets/269449c1-9ffd-43cb-925e-ea1a2dcb5fe4
-
-## Create/Delete project
-Deleting a project also kills its workspace tmux sessions (including their tool windows).
-
-https://github.com/user-attachments/assets/890bf029-02ef-4b64-8bdf-ffe7ba3b9592
-
-## Help Menu
-Common actions are visible in the help bar at the bottom for better discoverability, but a more comprehensive help menu is one key press "?" away on every view.
-
-https://github.com/user-attachments/assets/7b25b6fe-40a9-4dcc-a692-1151d92a9ab4
+https://github.com/user-attachments/assets/4f49c841-7d72-4531-8530-4f3ff6b151b6
 
 ## Prerequisites
 
