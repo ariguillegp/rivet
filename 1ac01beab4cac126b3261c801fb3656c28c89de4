@@ -1,0 +1,68 @@
+internal/core/update_tool_sessions_test.go
+  fee5e1c94f607a04 3-6,59-89,93,97-98
+internal/ui/model.go
+  840c2afb60a16350 859-861,863
+  fee5e1c94f607a04 640-642,749-750,846-858,864
+internal/ui/model_effects_test.go
+  fee5e1c94f607a04 307,310,315-318,320-334,336-339,341-343,385,387-394
+  840c2afb60a16350 346-350,352-366,368-372,374-381
+internal/core/update_prewarm_test.go
+  fee5e1c94f607a04 8,19-20,29-30
+internal/core/effects.go
+  fee5e1c94f607a04 55-56,59
+internal/core/update.go
+  fee5e1c94f607a04 145-147,469-471,475,549,552
+internal/adapters/sessions_tmux_launch_test.go
+  fee5e1c94f607a04 19,28,32-40,44-55,88-89,91-92,94-95,109-112,119-127,130,144,177-180,187-195,206-207,213,227-294,296-298,306,319-327,331,334,365-366,495-500
+internal/adapters/sessions_tmux.go
+  fee5e1c94f607a04 18-19,30,58,242-245,247-253,256,259-262,265,268,277,281,291-293,304-305,307-308,318,325,329,332-335,358-380
+  c24bacf40962e246 355-357,427
+internal/ui/model_update_test.go
+  fee5e1c94f607a04 6,166-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "1ac01beab4cac126b3261c801fb3656c28c89de4",
+  "prompts": {
+    "840c2afb60a16350": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d3abb-2a83-76e1-96fa-b18e358b428a",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 44,
+      "total_deletions": 0,
+      "accepted_lines": 44,
+      "overriden_lines": 0
+    },
+    "c24bacf40962e246": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dca0b455-0b71-4dba-95c0-a034a1f6a6d4",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 4,
+      "accepted_lines": 4,
+      "overriden_lines": 0
+    },
+    "fee5e1c94f607a04": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d3b16-ffa7-7871-8b23-852a86c356a5",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 363,
+      "total_deletions": 139,
+      "accepted_lines": 361,
+      "overriden_lines": 0
+    }
+  }
+}
