@@ -14,7 +14,7 @@ Use progressive guidance: start here for orientation, then check `internal/*/AGE
 - `internal/adapters`: OS/git/tmux implementations
 
 ## Build & Verify
-- **After every code change**, run `make -j validate` (fast gate: fmt → compile ∥ lint → test-short ∥ build).
+- **After every code change**, run `make -j validate` (fast gate covering `fix`, `fmt`, `compile`, `lint`, `test-short`, and `build`).
 - Always use `-j` so independent targets run concurrently while respecting dependency edges defined in the Makefile.
 - Do NOT skip `make -j validate` or run individual targets in isolation — the full pipeline is designed to fail fast.
 - If `make -j validate` fails, fix the failure and re-run before making further changes.

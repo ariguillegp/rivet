@@ -9,17 +9,17 @@ A lightweight TUI to manage your fleet of agents across all your projects.
 
 - Guided 3-step workflow: pick a project, pick/create a workspace (git worktree), then launch a tool (`opencode`, `amp`, `claude`, `codex`, or `none`).
 - Fast fuzzy filtering in every step (projects, workspaces, tools, and sessions).
-- Scans `~/Projects` (or provided roots) up to 2 levels deep, skipping hidden/common vendor directories.
+- Scans `~/Projects` (or provided roots) within a shallow directory tree, skipping hidden/common vendor directories.
 - Built-in tmux session switcher: press `ctrl+s` from the main screens to open **Active tmux sessions**, filter them, and press `enter` to attach.
 - In wide terminals, **Active tmux sessions** shows a table with `Project`, `Branch`, and `Last active`.
-- Workspace tmux sessions are prewarmed in the background and reused if already running. Each supported tool (`opencode`, `amp`, `claude`, `codex`, and `none`) is opened in its own tmux window inside the same workspace session.
+- Workspace tmux sessions are prewarmed in the background and reused if already running. Each workspace session keeps a `lazygit` window, and the selected tool (`opencode`, `amp`, `claude`, `codex`, or `none`) gets its own tmux window on demand.
 - Project/workspace lifecycle management in-app (create and delete with confirmation and cleanup). Worktree deletions are limited to rivet-managed worktrees under `~/.rivet/worktrees` (project root is protected).
 - Stale worktree references (from manually deleted directories) are automatically pruned whenever the worktree list is loaded, keeping the list accurate.
 - Keyboard-first UX with help modal (`?`), theme picker (`ctrl+t`), and a persistent help bar.
 - Optional non-interactive mode for launching sessions directly via CLI flags.
 
 ## Run agent tool in worktree (session caching)
-After selecting a project/worktree tuple, the program prewarms one tmux session for that workspace (creating it if needed) and ensures a window exists for each supported tool. Existing workspace sessions are reused, and selecting `none` opens a shell window immediately.
+After selecting a project/worktree/tool, the program prewarms one tmux session for that workspace (creating it if needed), ensures a `lazygit` window exists, and creates the selected tool window if needed. Existing workspace sessions are reused, and selecting `none` opens a shell window immediately.
 
 https://github.com/user-attachments/assets/424cf20e-86cb-4f13-83f1-dfe42d0bcf01
 
@@ -42,6 +42,7 @@ https://github.com/user-attachments/assets/7b25b6fe-40a9-4dcc-a692-1151d92a9ab4
 
 - tmux
 - git
+- lazygit
 - `opencode`, `amp`, `claude`, and/or `codex` (optional for `none` sessions)
 - Projects must be valid git repositories. The tool by default will look for projects under `~/Projects` and additional worktrees will be created under `~/.rivet/worktrees/`
 
@@ -109,7 +110,7 @@ By default, rv scans `~/Projects` (personal preference). Pass custom directories
 rv ~/projects ~/work
 ```
 
-Scanning goes up to 2 directory levels deep and skips common vendor/cache directories such as `.git`, `node_modules`, `vendor`, `.cache`, `.venv`, `__pycache__`, and `target`.
+Scanning is intentionally shallow and skips common vendor/cache directories such as `.git`, `node_modules`, `vendor`, `.cache`, `.venv`, `__pycache__`, and `target`.
 
 ### Non-Interactive Launch
 

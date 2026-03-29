@@ -4,7 +4,7 @@ This document explains **how rivet is organized and why**. It is intentionally b
 
 ## What rivet does
 
-`rivet` is a terminal UI + CLI launcher for project workspaces and tmux-backed workspace sessions with per-tool windows. It helps you:
+`rivet` is a terminal UI + CLI launcher for project workspaces and tmux-backed workspace sessions. Each workspace session keeps a shared `lazygit` window and adds tool windows on demand. It helps you:
 
 1. discover/select a project,
 2. discover/create/delete worktrees,
