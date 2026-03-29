@@ -1,0 +1,29 @@
+ARCHITECTURE.md
+  6af6e93226f513b9 7
+README.md
+  6af6e93226f513b9 12,15,22,45,113
+internal/adapters/AGENTS.md
+  6af6e93226f513b9 12,15
+AGENTS.md
+  6af6e93226f513b9 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "935463ada8af52c32d3b0c240124b9314555c558",
+  "prompts": {
+    "6af6e93226f513b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d3b2c-8d60-7f83-9ca7-6474b00fcfe6",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 8,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    }
+  }
+}
