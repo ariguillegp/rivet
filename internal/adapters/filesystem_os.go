@@ -294,9 +294,10 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 
 	args := []string{"worktree", "add"}
 	if !branchExists {
-		args = append(args, "-b", cleanBranch)
+		args = append(args, "-b", cleanBranch, worktreePath, "HEAD")
+	} else {
+		args = append(args, worktreePath, cleanBranch)
 	}
-	args = append(args, worktreePath, cleanBranch)
 
 	cmd := gitCommand(projectPath, args...)
 	output, err := cmd.CombinedOutput()
@@ -304,15 +305,7 @@ func (f *OSFilesystem) CreateWorktree(projectPath, branchName string) (string, e
 		if bytes.Contains(output, []byte("already exists")) && bytes.Contains(output, []byte(cleanBranch)) {
 			return "", core.WorktreeExistsError{Branch: cleanBranch}
 		}
-		cmd = gitCommand(projectPath, "worktree", "add", "--orphan", "-b", cleanBranch, worktreePath)
-		output2, err2 := cmd.CombinedOutput()
-		if err2 != nil {
-			if bytes.Contains(output2, []byte("already exists")) && bytes.Contains(output2, []byte(cleanBranch)) {
-				return "", core.WorktreeExistsError{Branch: cleanBranch}
-			}
-			return "", fmt.Errorf("%w: %s", err2, string(output2))
-		}
-		return worktreePath, nil
+		return "", fmt.Errorf("%w: %s", err, string(output))
 	}
 	_ = output
 

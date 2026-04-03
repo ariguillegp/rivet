@@ -109,6 +109,38 @@ func TestCreateWorktreeFromExistingBranch(t *testing.T) {
 	}
 }
 
+func TestCreateWorktreeFromNewBranchUsesHeadBase(t *testing.T) {
+	projectPath := t.TempDir()
+	initRepo(t, projectPath)
+
+	rootHeadCmd := exec.Command("git", "-C", projectPath, "rev-parse", "HEAD")
+	rootHeadOutput, err := rootHeadCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git rev-parse HEAD failed: %v: %s", err, string(rootHeadOutput))
+	}
+	rootHead := strings.TrimSpace(string(rootHeadOutput))
+
+	fs := &OSFilesystem{}
+	worktreePath, err := fs.CreateWorktree(projectPath, "feature/new")
+	if err != nil {
+		t.Fatalf("unexpected error creating worktree from new branch: %v", err)
+	}
+	defer func() {
+		_ = fs.DeleteWorktree(projectPath, worktreePath)
+	}()
+
+	worktreeHeadCmd := exec.Command("git", "-C", worktreePath, "rev-parse", "HEAD")
+	worktreeHeadOutput, err := worktreeHeadCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git rev-parse HEAD in worktree failed: %v: %s", err, string(worktreeHeadOutput))
+	}
+	worktreeHead := strings.TrimSpace(string(worktreeHeadOutput))
+
+	if worktreeHead != rootHead {
+		t.Fatalf("expected new worktree branch to be based on HEAD %q, got %q", rootHead, worktreeHead)
+	}
+}
+
 func TestCreateWorktreeUsesUniquePrefixPerProject(t *testing.T) {
 	root := t.TempDir()
 	projectA := filepath.Join(root, "client", "api")
