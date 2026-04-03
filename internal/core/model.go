@@ -57,12 +57,19 @@ type Model struct {
 }
 
 func NewModel(roots []string) Model {
-	tools := SupportedTools()
+	return NewModelWithTools(roots, SupportedTools())
+}
+
+func NewModelWithTools(roots []string, tools []string) Model {
+	if len(tools) == 0 {
+		tools = SupportedTools()
+	}
+	filteredTools := append([]string(nil), tools...)
 	return Model{
 		Mode:          ModeLoading,
 		RootPaths:     roots,
-		Tools:         tools,
-		FilteredTools: tools,
+		Tools:         append([]string(nil), filteredTools...),
+		FilteredTools: filteredTools,
 	}
 }
 

@@ -120,6 +120,18 @@ Create a new project non-interactively:
 rv --project my-project --worktree main --tool opencode --create-project
 ```
 
+### Environment Diagnostics
+
+Run a diagnostics report that checks required commands (`git`, `tmux`, `lazygit`), optional tool binaries, project roots, and worktree directory permissions.
+
+```bash
+rv --doctor [directories...]
+```
+
+Any failing check includes an actionable `fix:` hint in the output.
+Rivet requires at least one installed agent tool (`opencode`, `amp`, `claude`, or `codex`) to run agent sessions.
+In the TUI, only installed tools are selectable (plus `none`).
+
 ## Acknowledgments
 
 Inspired by:
