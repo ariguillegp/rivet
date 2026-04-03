@@ -301,6 +301,145 @@ func TestReturnToPreviousSessionSwitchesClientInsideTmux(t *testing.T) {
 	}
 }
 
+func TestDiagnoseEnvironmentPassesWhenRequirementsExist(t *testing.T) {
+	tmp := t.TempDir()
+	bin := filepath.Join(tmp, "bin")
+	root := filepath.Join(tmp, "projects")
+	worktrees := filepath.Join(tmp, ".rivet", "worktrees")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatalf("failed to create bin dir: %v", err)
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatalf("failed to create root dir: %v", err)
+	}
+	if err := os.MkdirAll(worktrees, 0o755); err != nil {
+		t.Fatalf("failed to create worktree dir: %v", err)
+	}
+
+	for _, name := range []string{"git", "tmux", "lazygit", "opencode", "amp", "claude", "codex"} {
+		writeExecutable(t, filepath.Join(bin, name), "#!/bin/sh\nexit 0\n")
+	}
+
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("HOME", tmp)
+
+	results := diagnoseEnvironment([]string{root})
+
+	for _, result := range results {
+		if !result.OK {
+			t.Fatalf("expected all checks to pass, but %s failed: %s", result.Name, result.Details)
+		}
+	}
+}
+
+func TestDiagnoseEnvironmentReportsMissingRequiredCommand(t *testing.T) {
+	origLookPath := doctorLookPath
+	doctorLookPath = func(file string) (string, error) {
+		if file == "git" {
+			return "", os.ErrNotExist
+		}
+		return "/bin/" + file, nil
+	}
+	t.Cleanup(func() { doctorLookPath = origLookPath })
+
+	results := diagnoseEnvironment([]string{t.TempDir()})
+
+	for _, result := range results {
+		if result.Name == "command:git" {
+			if result.OK {
+				t.Fatalf("expected command:git to fail")
+			}
+			if !strings.Contains(result.Suggestion, "install git") {
+				t.Fatalf("expected install suggestion, got %q", result.Suggestion)
+			}
+			return
+		}
+	}
+	t.Fatalf("expected command:git check result")
+}
+
+func TestDiagnoseEnvironmentFailsWhenNoAgentToolsInstalled(t *testing.T) {
+	origLookPath := doctorLookPath
+	doctorLookPath = func(file string) (string, error) {
+		switch file {
+		case "git", "tmux", "lazygit":
+			return "/bin/" + file, nil
+		default:
+			return "", os.ErrNotExist
+		}
+	}
+	t.Cleanup(func() { doctorLookPath = origLookPath })
+
+	results := diagnoseEnvironment([]string{t.TempDir()})
+	for _, result := range results {
+		if result.Name == "tools:agents" {
+			if result.OK {
+				t.Fatalf("expected tools:agents to fail when no tools are installed")
+			}
+			return
+		}
+	}
+	t.Fatalf("expected tools:agents check result")
+}
+
+func TestDiagnoseEnvironmentPassesWhenAtLeastOneAgentToolInstalled(t *testing.T) {
+	origLookPath := doctorLookPath
+	doctorLookPath = func(file string) (string, error) {
+		switch file {
+		case "git", "tmux", "lazygit", "codex":
+			return "/bin/" + file, nil
+		default:
+			return "", os.ErrNotExist
+		}
+	}
+	t.Cleanup(func() { doctorLookPath = origLookPath })
+
+	results := diagnoseEnvironment([]string{t.TempDir()})
+	for _, result := range results {
+		if result.Name == "tools:agents" {
+			if !result.OK {
+				t.Fatalf("expected tools:agents to pass when codex is installed")
+			}
+			return
+		}
+	}
+	t.Fatalf("expected tools:agents check result")
+}
+
+func TestAvailableToolsForUIIncludesOnlyInstalledAndNone(t *testing.T) {
+	origLookPath := doctorLookPath
+	doctorLookPath = func(file string) (string, error) {
+		if file == "codex" {
+			return "/bin/codex", nil
+		}
+		return "", os.ErrNotExist
+	}
+	t.Cleanup(func() { doctorLookPath = origLookPath })
+
+	tools := availableToolsForUI()
+	if len(tools) != 2 {
+		t.Fatalf("expected exactly 2 tools, got %d (%v)", len(tools), tools)
+	}
+	if tools[0] != "codex" || tools[1] != core.ToolNone {
+		t.Fatalf("unexpected tools list: %v", tools)
+	}
+}
+
+func TestRunDoctorReturnsFalseWhenRootMissing(t *testing.T) {
+	var b strings.Builder
+	ok := runDoctor([]string{"/definitely/missing/root"}, &b)
+	if ok {
+		t.Fatalf("expected doctor to fail")
+	}
+	out := b.String()
+	if !strings.Contains(out, "Doctor summary") {
+		t.Fatalf("expected doctor summary in output, got %q", out)
+	}
+	if !strings.Contains(out, "mkdir -p") {
+		t.Fatalf("expected actionable mkdir fix, got %q", out)
+	}
+}
+
 func writeExecutable(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
