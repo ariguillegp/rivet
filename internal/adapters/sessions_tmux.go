@@ -244,7 +244,10 @@ func sessionNameFor(spec core.SessionSpec) (string, error) {
 	}
 
 	cleanPath := filepath.Clean(spec.DirPath)
-	name := filepath.Base(cleanPath)
+	name := sessionProjectName(cleanPath)
+	if strings.TrimSpace(name) == "" {
+		name = filepath.Base(cleanPath)
+	}
 	if name == "." || name == string(filepath.Separator) || strings.TrimSpace(name) == "" {
 		name = "worktree"
 	}

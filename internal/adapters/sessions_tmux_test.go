@@ -200,11 +200,17 @@ func TestSessionNameForManagedWorktreeUsesUniformGitWorktreeSchema(t *testing.T)
 	if name != expected {
 		t.Fatalf("expected managed worktree session name %q, got %q", expected, name)
 	}
+	if strings.Contains(name, "feature-test") {
+		t.Fatalf("expected managed worktree session name to exclude branch text, got %q", name)
+	}
 }
 
 func expectedPathSessionName(dirPath string) string {
 	cleanPath := filepath.Clean(dirPath)
-	name := filepath.Base(cleanPath)
+	name := sessionProjectName(cleanPath)
+	if strings.TrimSpace(name) == "" {
+		name = filepath.Base(cleanPath)
+	}
 	if name == "." || name == string(filepath.Separator) || name == "" {
 		name = "worktree"
 	}
