@@ -82,19 +82,21 @@ exit 0
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "has-session -t =-tmp-project") {
+	sessionName := expectedSessionNameForTest(t, spec.DirPath)
+	target := "=" + sessionName
+	if !strings.Contains(log, "has-session -t "+target) {
 		t.Fatalf("expected has-session check, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "new-session -d -s -tmp-project") || !strings.Contains(log, "-n lazygit") {
+	if !strings.Contains(log, "new-session -d -s "+sessionName) || !strings.Contains(log, "-n lazygit") {
 		t.Fatalf("expected lazygit new-session call, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "new-window -d -t =-tmp-project -n amp") {
+	if !strings.Contains(log, "new-window -d -t "+target+" -n amp") {
 		t.Fatalf("expected agent tool window creation, got log:\n%s", log)
 	}
 	if strings.Contains(log, "-n codex") || strings.Contains(log, "-n claude") || strings.Contains(log, "-n opencode") || strings.Contains(log, "-n none") {
 		t.Fatalf("did not expect extra tool windows, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "select-window -t =-tmp-project:amp") {
+	if !strings.Contains(log, "select-window -t "+target+":amp") {
 		t.Fatalf("expected selected window to be focused, got log:\n%s", log)
 	}
 	if strings.Contains(log, "attach-session") || strings.Contains(log, "switch-client") {
@@ -156,13 +158,15 @@ exit 1
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "has-session -t =-tmp-project") {
+	sessionName := expectedSessionNameForTest(t, spec.DirPath)
+	target := "=" + sessionName
+	if !strings.Contains(log, "has-session -t "+target) {
 		t.Fatalf("expected has-session check, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "switch-client -t =-tmp-project") {
+	if !strings.Contains(log, "switch-client -t "+target) {
 		t.Fatalf("expected switch-client call, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "select-window -t =-tmp-project:amp") {
+	if !strings.Contains(log, "select-window -t "+target+":amp") {
 		t.Fatalf("expected selected window switch, got log:\n%s", log)
 	}
 	if strings.Contains(log, "attach-session") {
@@ -287,13 +291,14 @@ exit 0
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "new-window -d -t =-tmp-project -n claude") {
+	target := "=" + expectedSessionNameForTest(t, spec.DirPath)
+	if !strings.Contains(log, "new-window -d -t "+target+" -n claude") {
 		t.Fatalf("expected claude window to be created, got log:\n%s", log)
 	}
 	if strings.Contains(log, "kill-window") {
 		t.Fatalf("did not expect existing tool windows to be deleted, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "select-window -t =-tmp-project:claude") {
+	if !strings.Contains(log, "select-window -t "+target+":claude") {
 		t.Fatalf("expected new tool window to be focused, got log:\n%s", log)
 	}
 }
@@ -356,10 +361,12 @@ exit 0
 		t.Fatalf("failed to read tmux log: %v", err)
 	}
 	log := string(content)
-	if !strings.Contains(log, "new-session -d -s -tmp-project") {
+	sessionName := expectedSessionNameForTest(t, spec.DirPath)
+	target := "=" + sessionName
+	if !strings.Contains(log, "new-session -d -s "+sessionName) {
 		t.Fatalf("expected attempted new-session, got log:\n%s", log)
 	}
-	if !strings.Contains(log, "new-window -d -t =-tmp-project -n codex") {
+	if !strings.Contains(log, "new-window -d -t "+target+" -n codex") {
 		t.Fatalf("expected new-window fallback, got log:\n%s", log)
 	}
 	if strings.Contains(log, "-n amp") {
@@ -518,4 +525,13 @@ func writeExecutable(t *testing.T, path, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		t.Fatalf("failed to write executable %s: %v", path, err)
 	}
+}
+
+func expectedSessionNameForTest(t *testing.T, dirPath string) string {
+	t.Helper()
+	name, err := sessionNameFor(core.SessionSpec{DirPath: dirPath, Tool: "amp"})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+	return name
 }

@@ -192,6 +192,9 @@ func resolveWorktreePath(fs ports.Filesystem, projectPath, worktree string) (str
 			path = absPath
 		}
 		if exists(path) {
+			if !isGitWorktree(path) {
+				return "", fmt.Errorf("worktree is not a git repository: %s", worktree)
+			}
 			return path, nil
 		}
 		return "", fmt.Errorf("worktree not found: %s", worktree)
@@ -254,4 +257,13 @@ func exists(path string) bool {
 		return false
 	}
 	return info.IsDir()
+}
+
+func isGitWorktree(path string) bool {
+	cmd := exec.Command("git", "-C", path, "rev-parse", "--is-inside-work-tree")
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(output)) == "true"
 }

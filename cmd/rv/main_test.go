@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -203,6 +204,31 @@ func TestResolveWorktreePathReturnsListingWarning(t *testing.T) {
 	}
 }
 
+func TestResolveWorktreePathRejectsNonGitPathLikeWorktree(t *testing.T) {
+	worktreePath := filepath.Join(t.TempDir(), "project")
+	if err := os.MkdirAll(worktreePath, 0o755); err != nil {
+		t.Fatalf("failed to create worktree path: %v", err)
+	}
+
+	_, err := resolveWorktreePath(&stubFilesystem{}, "/projects/demo", worktreePath)
+	if err == nil || !strings.Contains(err.Error(), "worktree is not a git repository") {
+		t.Fatalf("expected non-git worktree error, got %v", err)
+	}
+}
+
+func TestResolveWorktreePathAcceptsGitPathLikeWorktree(t *testing.T) {
+	worktreePath := filepath.Join(t.TempDir(), "project")
+	initGitRepo(t, worktreePath)
+
+	resolved, err := resolveWorktreePath(&stubFilesystem{}, "/projects/demo", worktreePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resolved != worktreePath {
+		t.Fatalf("expected worktree path %q, got %q", worktreePath, resolved)
+	}
+}
+
 func TestExpandRootsExpandsHomePrefix(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
@@ -305,5 +331,22 @@ func writeExecutable(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		t.Fatalf("failed to write executable %s: %v", path, err)
+	}
+}
+
+func initGitRepo(t *testing.T, dir string) {
+	t.Helper()
+	cmd := exec.Command("git", "init", "-b", "main", dir)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		cmd = exec.Command("git", "init", dir)
+		if output2, err2 := cmd.CombinedOutput(); err2 != nil {
+			t.Fatalf("git init failed: %v: %s", err2, string(output2))
+		}
+		cmd = exec.Command("git", "-C", dir, "symbolic-ref", "HEAD", "refs/heads/main")
+		if output2, err2 := cmd.CombinedOutput(); err2 != nil {
+			t.Fatalf("git symbolic-ref failed: %v: %s", err2, string(output2))
+		}
+	} else {
+		_ = output
 	}
 }
