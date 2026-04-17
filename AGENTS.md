@@ -19,6 +19,7 @@ Use progressive guidance: start here for orientation, then check `internal/*/AGE
 - Do NOT skip `make -j validate` or run individual targets in isolation — the full pipeline is designed to fail fast.
 - If `make -j validate` fails, fix the failure and re-run before making further changes.
 - `make -j validate-full` for thorough checks (race detector, coverage threshold, vulncheck, module tidiness) — run before finalizing a PR.
+- Before opening a PR, verify docs are up to date for behavior/flag/workflow changes (at minimum review `README.md`; update it when behavior changed).
 - `make deploy` to install the binary to `~/.local/bin/rv`.
 
 ## Design Guidance

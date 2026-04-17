@@ -167,21 +167,29 @@ func sessionMetadata(dirPath string) (projectName, branch string) {
 	return strings.TrimSpace(projectName), strings.TrimSpace(branch)
 }
 
-func sessionProjectName(dirPath string) string {
+func sessionProjectPath(dirPath string) string {
 	commonDir := gitOutput("-C", dirPath, "rev-parse", "--git-common-dir")
 	if commonDir != "" {
 		if !filepath.IsAbs(commonDir) {
 			commonDir = filepath.Clean(filepath.Join(dirPath, commonDir))
 		}
 		if strings.EqualFold(filepath.Base(commonDir), ".git") {
-			project := strings.TrimSpace(filepath.Base(filepath.Dir(commonDir)))
-			if project != "" && project != "." && project != string(filepath.Separator) {
-				return project
+			projectPath := filepath.Dir(commonDir)
+			if projectPath != "" && projectPath != "." && projectPath != string(filepath.Separator) {
+				return projectPath
 			}
 		}
 	}
 
 	topLevel := gitOutput("-C", dirPath, "rev-parse", "--show-toplevel")
+	if topLevel == "" {
+		return ""
+	}
+	return topLevel
+}
+
+func sessionProjectName(dirPath string) string {
+	topLevel := sessionProjectPath(dirPath)
 	if topLevel == "" {
 		topLevel = dirPath
 	}
@@ -236,7 +244,18 @@ func sessionNameFor(spec core.SessionSpec) (string, error) {
 	}
 
 	cleanPath := filepath.Clean(spec.DirPath)
-	return sanitizeSessionPart(cleanPath, "worktree"), nil
+	name := sessionProjectName(cleanPath)
+	if strings.TrimSpace(name) == "" {
+		name = filepath.Base(cleanPath)
+	}
+	if name == "." || name == string(filepath.Separator) || strings.TrimSpace(name) == "" {
+		name = "worktree"
+	}
+	name = strings.Trim(sanitizeSessionPart(name, "worktree"), "-")
+	if name == "" {
+		name = "worktree"
+	}
+	return name + "-" + sessionPathHash(cleanPath), nil
 }
 
 func ensureWorkspaceLayout(sessionName, dirPath, selectedTool string) (bool, error) {

@@ -403,7 +403,18 @@ func repoHasCommit(repoPath string) bool {
 func projectWorktreePrefix(projectPath string) string {
 	cleanPath := filepath.Clean(projectPath)
 	projectName := filepath.Base(cleanPath)
-	hasher := sha1.Sum([]byte(cleanPath))
-	suffix := hex.EncodeToString(hasher[:])[:6]
+	suffix := shortPathHash(cleanPath)
 	return fmt.Sprintf("%s-%s", projectName, suffix)
+}
+
+func shortPathHash(path string) string {
+	cleanPath := filepath.Clean(path)
+	hasher := sha1.Sum([]byte(cleanPath))
+	return hex.EncodeToString(hasher[:])[:6]
+}
+
+func sessionPathHash(path string) string {
+	cleanPath := filepath.Clean(path)
+	hasher := sha1.Sum([]byte(cleanPath))
+	return hex.EncodeToString(hasher[:])[:12]
 }

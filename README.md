@@ -114,6 +114,8 @@ rv --project my-project --worktree main --tool none [--detach]
 
 `--project` and `--worktree` accept names or paths. If the worktree doesn't exist yet, rivet creates a new worktree/branch automatically. Use `--create-project` to initialize a missing project (in the first root or at the provided path).
 
+When `--worktree` is passed as a path, it must point to a Git worktree/repository directory.
+
 Create a new project non-interactively:
 
 ```bash

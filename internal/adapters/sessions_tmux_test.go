@@ -2,11 +2,252 @@ package adapters
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ariguillegp/rivet/internal/core"
 )
+
+func TestSessionNameForUsesWorktreeBasenameAndPathHash(t *testing.T) {
+	dirPath := "/home/demo/.rivet/worktrees/rivet-d5b447--tmux-session-name"
+	name, err := sessionNameFor(core.SessionSpec{
+		DirPath: dirPath,
+		Tool:    "codex",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+	expected := expectedPathSessionName(dirPath)
+	if name != expected {
+		t.Fatalf("expected path-derived session name %q, got %q", expected, name)
+	}
+}
+
+func TestSessionNameForSanitizesBasenameAndAppendsPathHash(t *testing.T) {
+	dirPath := "/tmp/feature branch!"
+	name, err := sessionNameFor(core.SessionSpec{
+		DirPath: dirPath,
+		Tool:    "amp",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+	expected := expectedPathSessionName(dirPath)
+	if name != expected {
+		t.Fatalf("expected sanitized path-derived session name %q, got %q", expected, name)
+	}
+}
+
+func TestSessionNameForRootWorktreeUsesStablePathName(t *testing.T) {
+	projectPath := filepath.Join(t.TempDir(), "api")
+	initRepo(t, projectPath)
+
+	name, err := sessionNameFor(core.SessionSpec{
+		DirPath: projectPath,
+		Tool:    "codex",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+
+	expected := expectedPathSessionName(projectPath)
+	if name != expected {
+		t.Fatalf("expected root worktree session name %q, got %q", expected, name)
+	}
+}
+
+func TestSessionNameForRootWorktreesWithSameBasenameDoNotCollide(t *testing.T) {
+	root := t.TempDir()
+	projectA := filepath.Join(root, "client", "api")
+	projectB := filepath.Join(root, "scratch", "api")
+	initRepo(t, projectA)
+	initRepo(t, projectB)
+
+	nameA, err := sessionNameFor(core.SessionSpec{DirPath: projectA, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for project A: %v", err)
+	}
+	nameB, err := sessionNameFor(core.SessionSpec{DirPath: projectB, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for project B: %v", err)
+	}
+	if nameA == nameB {
+		t.Fatalf("expected distinct session names for same-basename roots, got %q", nameA)
+	}
+}
+
+func TestSessionNameForAvoidsKnownShortHashCollision(t *testing.T) {
+	pathA := "/tmp/collide/1900/api"
+	pathB := "/tmp/collide/6785/api"
+	if shortPathHash(pathA) != shortPathHash(pathB) {
+		t.Fatalf("expected test paths to demonstrate a short hash collision")
+	}
+
+	nameA, err := sessionNameFor(core.SessionSpec{DirPath: pathA, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for path A: %v", err)
+	}
+	nameB, err := sessionNameFor(core.SessionSpec{DirPath: pathB, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for path B: %v", err)
+	}
+	if nameA == nameB {
+		t.Fatalf("expected distinct session names for known short-hash collision, got %q", nameA)
+	}
+}
+
+func TestSessionNameForIsStableAcrossBranchChanges(t *testing.T) {
+	projectPath := filepath.Join(t.TempDir(), "api")
+	initRepo(t, projectPath)
+
+	nameBefore, err := sessionNameFor(core.SessionSpec{
+		DirPath: projectPath,
+		Tool:    "codex",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+
+	checkoutNewBranch(t, projectPath, "feature/session-name")
+	nameAfter, err := sessionNameFor(core.SessionSpec{
+		DirPath: projectPath,
+		Tool:    "codex",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error after branch change: %v", err)
+	}
+	if nameAfter != nameBefore {
+		t.Fatalf("expected session name to stay stable across branch changes, got before=%q after=%q", nameBefore, nameAfter)
+	}
+}
+
+func TestSessionNameForDetachedWorktreesInSameRepositoryDoNotCollide(t *testing.T) {
+	root := t.TempDir()
+	projectPath := filepath.Join(root, "api")
+	initRepo(t, projectPath)
+	worktreeA := filepath.Join(root, "detached-a")
+	worktreeB := filepath.Join(root, "detached-b")
+	addDetachedWorktree(t, projectPath, worktreeA)
+	addDetachedWorktree(t, projectPath, worktreeB)
+
+	nameA, err := sessionNameFor(core.SessionSpec{DirPath: worktreeA, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for worktree A: %v", err)
+	}
+	nameB, err := sessionNameFor(core.SessionSpec{DirPath: worktreeB, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for worktree B: %v", err)
+	}
+	if nameA == nameB {
+		t.Fatalf("expected distinct detached session names for same-repository worktrees, got %q", nameA)
+	}
+
+	expectedA := expectedPathSessionName(worktreeA)
+	expectedB := expectedPathSessionName(worktreeB)
+	if nameA != expectedA {
+		t.Fatalf("expected detached worktree A session name %q, got %q", expectedA, nameA)
+	}
+	if nameB != expectedB {
+		t.Fatalf("expected detached worktree B session name %q, got %q", expectedB, nameB)
+	}
+}
+
+func TestSessionNameForDetachedRootWorktreesWithSameBasenameDoNotCollide(t *testing.T) {
+	root := t.TempDir()
+	projectA := filepath.Join(root, "client", "api")
+	projectB := filepath.Join(root, "scratch", "api")
+	initRepo(t, projectA)
+	initRepo(t, projectB)
+	detachHead(t, projectA)
+	detachHead(t, projectB)
+
+	nameA, err := sessionNameFor(core.SessionSpec{DirPath: projectA, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for project A: %v", err)
+	}
+	nameB, err := sessionNameFor(core.SessionSpec{DirPath: projectB, Tool: "codex"})
+	if err != nil {
+		t.Fatalf("unexpected session name error for project B: %v", err)
+	}
+	if nameA == nameB {
+		t.Fatalf("expected distinct detached session names for same-basename roots, got %q", nameA)
+	}
+}
+
+func TestSessionNameForManagedWorktreeUsesUniformGitWorktreeSchema(t *testing.T) {
+	projectPath := filepath.Join(t.TempDir(), "rivet")
+	initRepo(t, projectPath)
+
+	fs := &OSFilesystem{}
+	worktreePath, err := fs.CreateWorktree(projectPath, "feature/test")
+	if err != nil {
+		t.Fatalf("unexpected worktree creation error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = fs.DeleteWorktree(projectPath, worktreePath)
+	})
+
+	name, err := sessionNameFor(core.SessionSpec{
+		DirPath: worktreePath,
+		Tool:    "codex",
+	})
+	if err != nil {
+		t.Fatalf("unexpected session name error: %v", err)
+	}
+	expected := expectedPathSessionName(worktreePath)
+	if name != expected {
+		t.Fatalf("expected managed worktree session name %q, got %q", expected, name)
+	}
+	if strings.Contains(name, "feature-test") {
+		t.Fatalf("expected managed worktree session name to exclude branch text, got %q", name)
+	}
+}
+
+func expectedPathSessionName(dirPath string) string {
+	cleanPath := filepath.Clean(dirPath)
+	name := sessionProjectName(cleanPath)
+	if strings.TrimSpace(name) == "" {
+		name = filepath.Base(cleanPath)
+	}
+	if name == "." || name == string(filepath.Separator) || name == "" {
+		name = "worktree"
+	}
+	name = strings.Trim(sanitizeSessionPart(name, "worktree"), "-")
+	if name == "" {
+		name = "worktree"
+	}
+	return name + "-" + sessionPathHash(cleanPath)
+}
+
+func detachHead(t *testing.T, dir string) {
+	t.Helper()
+	cmd := exec.Command("git", "-C", dir, "checkout", "--detach", "HEAD")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout --detach failed: %v: %s", err, string(output))
+	}
+}
+
+func checkoutNewBranch(t *testing.T, dir, branch string) {
+	t.Helper()
+	cmd := exec.Command("git", "-C", dir, "checkout", "-b", branch)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b failed: %v: %s", err, string(output))
+	}
+}
+
+func addDetachedWorktree(t *testing.T, projectPath, worktreePath string) {
+	t.Helper()
+	cmd := exec.Command("git", "-C", projectPath, "worktree", "add", "--detach", worktreePath, "HEAD")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add --detach failed: %v: %s", err, string(output))
+	}
+	t.Cleanup(func() {
+		cmd := exec.Command("git", "-C", projectPath, "worktree", "remove", "--force", worktreePath)
+		_ = cmd.Run()
+	})
+}
 
 func TestKillSessionIgnoresNoServerRunning(t *testing.T) {
 	tmpDir := t.TempDir()
