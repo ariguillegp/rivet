@@ -1,0 +1,27 @@
+internal/adapters/sessions_tmux_launch_test.go
+  5fa476f83129687e 85-87,90,93,99,161-163,166,169,294-295,301,364-366,369,529-536
+internal/adapters/sessions_tmux_test.go
+  5fa476f83129687e 5,7,13-80,101-214,216-245
+internal/adapters/sessions_tmux.go
+  5fa476f83129687e 170,177-179,185-192,247-254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "2fdd9f89d3ba0bc6bbcfe4c02fb2c0fca5326757",
+  "prompts": {
+    "5fa476f83129687e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d9b0c-287d-7291-b4e5-7b4e1f1a2bb7",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Aristides Gonzalez <aristides@glezpol.com>",
+      "messages": [],
+      "total_additions": 321,
+      "total_deletions": 74,
+      "accepted_lines": 261,
+      "overriden_lines": 2
+    }
+  }
+}
