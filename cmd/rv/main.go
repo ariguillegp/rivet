@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,11 +22,13 @@ func main() {
 	var projectFlag string
 	var worktreeFlag string
 	var toolFlag string
+	var doctorFlag bool
 	var createProjectFlag bool
 	var detachFlag bool
 	flag.StringVar(&projectFlag, "project", "", "Project container name or path")
 	flag.StringVar(&worktreeFlag, "worktree", "", "Worktree name or path")
 	flag.StringVar(&toolFlag, "tool", "", "Tool to run (opencode, amp, claude, codex, or none)")
+	flag.BoolVar(&doctorFlag, "doctor", false, "Run environment diagnostics and print fixes")
 	flag.BoolVar(&createProjectFlag, "create-project", false, "Create the project container if missing")
 	flag.BoolVar(&detachFlag, "detach", false, "Create the tmux session without attaching")
 	flag.Parse()
@@ -36,14 +39,29 @@ func main() {
 	}
 	roots = expandRoots(roots)
 
+	if doctorFlag {
+		healthy := runDoctor(roots, os.Stdout)
+		if healthy {
+			return
+		}
+		os.Exit(1)
+	}
+
 	fs := adapters.NewOSFilesystem()
 	sessions := adapters.NewTmuxSession()
+	availableTools := availableToolsForUI()
 
 	if projectFlag != "" || worktreeFlag != "" || toolFlag != "" || createProjectFlag || detachFlag {
 		spec, err := resolveSessionSpec(fs, roots, projectFlag, worktreeFlag, toolFlag, createProjectFlag, detachFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
+		}
+		if spec.Tool != core.ToolNone {
+			if _, err := doctorLookPath(spec.Tool); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: tool %q is not installed or not in PATH\n", spec.Tool)
+				os.Exit(1)
+			}
 		}
 		if err := sessions.OpenSession(spec); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -52,7 +70,7 @@ func main() {
 		return
 	}
 
-	m := ui.New(roots, fs, sessions)
+	m := ui.NewWithTools(roots, availableTools, fs, sessions)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	result, err := p.Run()
@@ -85,6 +103,38 @@ func main() {
 		return
 	}
 	_ = returnToPreviousSession()
+}
+
+type doctorResult struct {
+	Name       string
+	OK         bool
+	Details    string
+	Suggestion string
+}
+
+func runDoctor(roots []string, out io.Writer) bool {
+	results := diagnoseEnvironment(roots)
+	failing := 0
+
+	fmt.Fprintln(out, "rivet doctor report")
+	fmt.Fprintln(out, "==================")
+	for _, result := range results {
+		status := "OK"
+		if !result.OK {
+			status = "FAIL"
+			failing++
+		}
+		fmt.Fprintf(out, "- [%s] %s: %s\n", status, result.Name, result.Details)
+		if !result.OK && strings.TrimSpace(result.Suggestion) != "" {
+			fmt.Fprintf(out, "  fix: %s\n", result.Suggestion)
+		}
+	}
+	if failing == 0 {
+		fmt.Fprintln(out, "\nDoctor summary: all required checks passed.")
+		return true
+	}
+	fmt.Fprintf(out, "\nDoctor summary: %d required check(s) failed.\n", failing)
+	return false
 }
 
 func resetTerminal() error {

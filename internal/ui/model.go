@@ -60,6 +60,10 @@ type Model struct {
 }
 
 func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Model {
+	return NewWithTools(roots, core.SupportedTools(), fs, sessions)
+}
+
+func NewWithTools(roots, tools []string, fs ports.Filesystem, sessions ports.SessionManager) Model {
 	ti := textinput.New()
 	ti.Prompt = ""
 	ti.Focus()
@@ -87,7 +91,7 @@ func New(roots []string, fs ports.Filesystem, sessions ports.SessionManager) Mod
 	vp := viewport.New(0, 0)
 
 	m := Model{
-		core:               core.NewModel(roots),
+		core:               core.NewModelWithTools(roots, tools),
 		input:              ti,
 		worktreeInput:      wti,
 		toolInput:          tti,
